@@ -1307,7 +1307,7 @@ const CONFIG_KEY = 'billio-config-v1';
 
 // Mode: 'cloud' (Supabase) ou 'local'
 let mode = 'local';
-let supabase = null;
+let sb = null;
 let cloudReady = false;
 
 function loadConfig() {
@@ -1324,7 +1324,7 @@ function saveConfig(cfg) {
 function initSupabase(url, key) {
   if (!window.supabase) return false;
   try {
-    supabase = window.supabase.createClient(url, key);
+    sb = window.supabase.createClient(url, key);
     return true;
   } catch (e) { return false; }
 }
@@ -1342,7 +1342,7 @@ async function connectSupabase() {
 
   // Test connection by trying to fetch state
   try {
-    const { data, error } = await supabase.from('crm_data').select('*').limit(1);
+    const { data, error } = await sb.from('crm_data').select('*').limit(1);
     if (error && error.code !== 'PGRST116') {
       // Table doesn't exist or other error
       toast('Erreur : ' + (error.message || 'connexion échouée'));
@@ -1387,10 +1387,10 @@ async function initLocal() {
 
 async function saveState() {
   const json = JSON.stringify(state);
-  if (mode === 'cloud' && supabase && cloudReady) {
+  if (mode === 'cloud' && sb && cloudReady) {
     try {
       // Upsert single row with id=1
-      const { error } = await supabase.from('crm_data').upsert({
+      const { error } = await sb.from('crm_data').upsert({
         id: 1,
         data: state,
         updated_at: new Date().toISOString()
@@ -1410,9 +1410,9 @@ async function saveState() {
 }
 
 async function loadState() {
-  if (mode === 'cloud' && supabase) {
+  if (mode === 'cloud' && sb) {
     try {
-      const { data, error } = await supabase.from('crm_data').select('data').eq('id', 1).maybeSingle();
+      const { data, error } = await sb.from('crm_data').select('data').eq('id', 1).maybeSingle();
       if (error) {
         console.error('Load error:', error);
       } else if (data && data.data) {
@@ -1432,9 +1432,9 @@ async function loadState() {
 }
 
 function setupRealtimeSync() {
-  if (mode !== 'cloud' || !supabase) return;
+  if (mode !== 'cloud' || !sb) return;
   // Listen to changes from other users
-  supabase
+  sb
     .channel('crm-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_data' }, (payload) => {
       if (payload.new && payload.new.data) {
