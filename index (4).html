@@ -1,0 +1,2999 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billio · Suivi des règlements</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Billio%20Suivi%22%2C%22short_name%22%3A%22Billio%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23fafafa%22%2C%22theme_color%22%3A%22%230070f3%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjMDA3MGYzIi8%2BPHRleHQgeD0iOTYiIHk9IjEyMCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjkwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkI8L3RleHQ%2BPC9zdmc%2B%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+<meta name="theme-color" content="#0070f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Billio">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #fafafa;
+    --bg-subtle: #f4f4f5;
+    --surface: #ffffff;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --text: #09090b;
+    --text-soft: #52525b;
+    --text-muted: #a1a1aa;
+    --primary: #0070f3;
+    --primary-hover: #0058c4;
+    --primary-soft: #e6f0ff;
+    --success: #00a86b;
+    --success-soft: #e6f7f0;
+    --warning: #f59e0b;
+    --warning-soft: #fef3c7;
+    --danger: #dc2626;
+    --danger-soft: #fee2e2;
+    --info: #6366f1;
+    --info-soft: #eef2ff;
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 16px 32px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04);
+    --radius: 8px;
+    --radius-sm: 6px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Geist', -apple-system, sans-serif;
+    font-size: 14px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  .mono { font-family: 'Geist Mono', monospace; }
+
+  /* ============ LAYOUT ============ */
+  .app { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+  @media (max-width: 960px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 14px;
+    position: sticky; top: 0; height: 100vh;
+    display: flex; flex-direction: column;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px; margin-bottom: 24px;
+  }
+  .brand-mark {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--primary) 0%, #00d4ff 100%);
+    border-radius: 6px;
+    display: grid; place-items: center;
+    color: white; font-weight: 700; font-size: 14px;
+    letter-spacing: -0.05em;
+    box-shadow: 0 2px 8px rgba(0,112,243,0.25);
+  }
+  .brand-name { font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
+  .brand-name span { color: var(--text-muted); font-weight: 400; margin-left: 4px; font-size: 11px; }
+
+  .nav-section { margin-bottom: 4px; }
+  .nav-label {
+    font-size: 11px; color: var(--text-muted);
+    padding: 8px 10px 4px; font-weight: 500;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: var(--radius-sm);
+    cursor: pointer; color: var(--text-soft);
+    font-size: 13.5px; font-weight: 500;
+    transition: all 0.15s;
+    margin-bottom: 1px;
+  }
+  .nav-item:hover { background: var(--bg-subtle); color: var(--text); }
+  .nav-item.active { background: var(--text); color: white; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .nav-item .badge {
+    margin-left: auto; background: var(--danger); color: white;
+    font-size: 10px; padding: 1px 6px; border-radius: 99px;
+    font-weight: 600; min-width: 18px; text-align: center;
+  }
+  .nav-item.active .badge { background: white; color: var(--text); }
+
+  .sidebar-footer {
+    margin-top: auto; padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .footer-card { padding: 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); }
+  .footer-stat {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0;
+  }
+  .footer-stat .label { color: var(--text-muted); font-size: 11px; }
+  .footer-stat .val { font-weight: 600; font-family: 'Geist Mono', monospace; font-size: 12px; }
+  .footer-stat .val.success { color: var(--success); }
+  .footer-stat .val.warning { color: var(--warning); }
+  .footer-stat .val.danger { color: var(--danger); }
+
+  /* ============ MAIN ============ */
+  .main { padding: 24px 32px 60px; max-width: 1400px; }
+  @media (max-width: 768px) { .main { padding: 16px; } }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+  }
+  .page-title { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .page-subtitle { color: var(--text-soft); font-size: 13px; margin-top: 2px; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ============ BUTTONS ============ */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 12px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    font-size: 13px; font-weight: 500;
+    border-radius: var(--radius-sm); cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+    box-shadow: var(--shadow-xs);
+  }
+  .btn:hover { border-color: var(--border-strong); background: var(--bg-subtle); }
+  .btn-primary { background: var(--text); color: white; border-color: var(--text); }
+  .btn-primary:hover { background: #27272a; border-color: #27272a; }
+  .btn-accent { background: var(--primary); color: white; border-color: var(--primary); }
+  .btn-accent:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .btn-success { background: var(--success); color: white; border-color: var(--success); }
+  .btn-success:hover { background: #008f5a; border-color: #008f5a; }
+  .btn-danger { color: var(--danger); }
+  .btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
+  .btn-ghost { background: transparent; border-color: transparent; box-shadow: none; }
+  .btn-ghost:hover { background: var(--bg-subtle); border-color: transparent; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-icon { width: 30px; height: 30px; padding: 0; display: grid; place-items: center; }
+  .btn svg { width: 14px; height: 14px; }
+
+  /* ============ KPI CARDS ============ */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+  }
+  .kpi:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+  .kpi-head {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--text-muted); font-size: 12px;
+    margin-bottom: 8px; font-weight: 500;
+  }
+  .kpi-icon {
+    width: 22px; height: 22px; border-radius: 5px;
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .kpi-icon svg { width: 13px; height: 13px; }
+  .kpi-icon.success { background: var(--success-soft); color: var(--success); }
+  .kpi-icon.warning { background: var(--warning-soft); color: var(--warning); }
+  .kpi-icon.danger { background: var(--danger-soft); color: var(--danger); }
+  .kpi-icon.info { background: var(--info-soft); color: var(--info); }
+  .kpi-icon.primary { background: var(--primary-soft); color: var(--primary); }
+  .kpi-value {
+    font-size: 24px; font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .kpi-value .currency { font-size: 14px; color: var(--text-muted); margin-right: 2px; vertical-align: super; }
+  .kpi-meta {
+    font-size: 12px; color: var(--text-soft);
+    margin-top: 6px;
+  }
+
+  /* ============ MONTH SELECTOR ============ */
+  .month-bar {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 6px;
+    margin-bottom: 20px; overflow-x: auto;
+    box-shadow: var(--shadow-xs);
+  }
+  .month-chip {
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+    color: var(--text-soft);
+  }
+  .month-chip:hover { background: var(--bg-subtle); color: var(--text); }
+  .month-chip.active { background: var(--text); color: white; }
+  .month-chip-divider { width: 1px; background: var(--border); height: 20px; flex-shrink: 0; margin: 0 4px; }
+  .month-nav { display: flex; align-items: center; gap: 4px; }
+  .month-nav-btn {
+    width: 28px; height: 28px; display: grid; place-items: center;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: var(--radius-sm); cursor: pointer;
+    color: var(--text-soft); transition: all 0.15s;
+  }
+  .month-nav-btn:hover { background: var(--bg-subtle); color: var(--text); }
+  .month-nav-btn svg { width: 14px; height: 14px; }
+  .month-current {
+    padding: 6px 14px; font-weight: 600; font-size: 13.5px;
+    min-width: 140px; text-align: center;
+  }
+
+  /* ============ CHARTS ============ */
+  .chart-grid {
+    display: grid; grid-template-columns: 2fr 1fr; gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+  .chart-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .chart-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 16px; gap: 10px; flex-wrap: wrap;
+  }
+  .chart-title { font-size: 14px; font-weight: 600; }
+  .chart-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .chart-legend {
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    font-size: 12px; color: var(--text-soft);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .chart-canvas { width: 100%; height: 240px; }
+  @media (max-width: 600px) { .chart-canvas { height: 200px; } }
+
+  /* ============ PANEL ============ */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 16px;
+  }
+  .panel-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .panel-title { font-size: 14px; font-weight: 600; }
+  .panel-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* ============ FILTERS ============ */
+  .filters { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .filter-pill {
+    padding: 5px 11px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm); cursor: pointer;
+    background: var(--surface); color: var(--text-soft);
+    transition: all 0.15s;
+  }
+  .filter-pill:hover { background: var(--bg-subtle); color: var(--text); }
+  .filter-pill.active { background: var(--text); color: white; border-color: var(--text); }
+  .filter-pill .count {
+    margin-left: 4px; font-size: 11px; opacity: 0.7;
+    font-family: 'Geist Mono', monospace;
+  }
+
+  .search-input {
+    padding: 6px 12px 6px 30px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 13px;
+    font-family: inherit; min-width: 200px;
+    background: var(--surface);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+    background-repeat: no-repeat; background-position: 10px center;
+    transition: all 0.15s;
+  }
+  .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+
+  /* ============ TABLES ============ */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 11px; color: var(--text-muted); font-weight: 500;
+    text-align: left; padding: 10px 18px;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th.right, td.right { text-align: right; }
+  td {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px; vertical-align: middle;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tr.row-link { cursor: pointer; transition: background 0.1s; }
+  tr.row-link:hover { background: var(--bg-subtle); }
+  tr.row-link.urgent { background: var(--danger-soft); }
+  tr.row-link.urgent:hover { background: #fde8e8; }
+  tr.row-link.warn { background: #fffbeb; }
+  tr.row-link.warn:hover { background: var(--warning-soft); }
+  .num { font-family: 'Geist Mono', monospace; font-size: 12.5px; color: var(--text-soft); }
+  .amount { font-family: 'Geist Mono', monospace; font-weight: 600; font-size: 13px; }
+  .client-cell { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg-subtle); color: var(--text);
+    display: grid; place-items: center;
+    font-weight: 600; font-size: 11px; flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+  .client-name { font-weight: 500; }
+  .client-sub { font-size: 11px; color: var(--text-muted); }
+
+  /* ============ BADGES ============ */
+  .badge-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 9px; border-radius: 99px;
+    font-size: 11px; font-weight: 500;
+    border: 1px solid;
+  }
+  .badge-status::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%;
+  }
+  .badge-status.pending { background: var(--info-soft); color: var(--info); border-color: #c7d2fe; }
+  .badge-status.pending::before { background: var(--info); }
+  .badge-status.paid { background: var(--success-soft); color: var(--success); border-color: #a7e8c5; }
+  .badge-status.paid::before { background: var(--success); }
+  .badge-status.overdue { background: var(--danger-soft); color: var(--danger); border-color: #fecaca; }
+  .badge-status.overdue::before { background: var(--danger); }
+  .badge-status.partial { background: var(--warning-soft); color: var(--warning); border-color: #fde68a; }
+  .badge-status.partial::before { background: var(--warning); }
+  .badge-status.cancelled { background: var(--bg-subtle); color: var(--text-muted); border-color: var(--border); text-decoration: line-through; }
+  .badge-status.cancelled::before { background: var(--text-muted); }
+
+  .relance-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 4px; font-size: 11px;
+    font-weight: 500; font-family: 'Geist Mono', monospace;
+  }
+  .relance-pill.j15 { background: var(--warning-soft); color: var(--warning); }
+  .relance-pill.j22 { background: #ffe4d4; color: #c2410c; }
+  .relance-pill.j30 { background: var(--danger-soft); color: var(--danger); }
+  .relance-pill.done { background: var(--bg-subtle); color: var(--text-muted); }
+
+  .days-late { font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 500; }
+  .days-late.late { color: var(--danger); }
+  .days-late.warn { color: var(--warning); }
+  .days-late.ok { color: var(--success); }
+
+  /* ============ MODAL ============ */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(9,9,11,0.5);
+    backdrop-filter: blur(4px);
+    display: none; align-items: flex-start; justify-content: center;
+    z-index: 100; padding: 40px 20px; overflow-y: auto;
+  }
+  .modal-overlay.show { display: flex; animation: fadeIn 0.15s; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--surface); border-radius: var(--radius-lg);
+    max-width: 560px; width: 100%;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    animation: slideUp 0.2s; margin-bottom: 40px;
+  }
+  @keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-head {
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  .modal-body { padding: 20px 22px; }
+  .modal-foot {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; background: var(--bg-subtle);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  }
+  .close-btn {
+    background: transparent; border: none; cursor: pointer;
+    color: var(--text-muted); width: 28px; height: 28px;
+    border-radius: var(--radius-sm); display: grid; place-items: center;
+  }
+  .close-btn:hover { background: var(--bg-subtle); color: var(--text); }
+  .close-btn svg { width: 16px; height: 16px; }
+
+  /* ============ FORMS ============ */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 600px) { .form-row, .form-row.three { grid-template-columns: 1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+  .form-group label .req { color: var(--danger); }
+  .form-group .hint { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 8px 11px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 13px;
+    font-family: inherit; background: var(--surface);
+    color: var(--text); transition: all 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+  .form-group textarea { resize: vertical; min-height: 60px; font-family: inherit; }
+
+  /* ============ EMPTY STATE ============ */
+  .empty {
+    padding: 50px 20px; text-align: center; color: var(--text-muted);
+  }
+  .empty-icon {
+    width: 48px; height: 48px; margin: 0 auto 12px;
+    background: var(--bg-subtle); border-radius: 50%;
+    display: grid; place-items: center; color: var(--text-muted);
+  }
+  .empty-icon svg { width: 22px; height: 22px; }
+  .empty h3 { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .empty p { margin-bottom: 14px; font-size: 13px; }
+
+  /* ============ INVOICE DETAIL ============ */
+  .invoice-meta-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    padding: 16px 22px; background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+  }
+  @media (max-width: 600px) { .invoice-meta-grid { grid-template-columns: repeat(2, 1fr); } }
+  .meta-item .meta-label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .meta-item .meta-value { font-size: 13.5px; font-weight: 500; }
+
+  .payment-block {
+    padding: 14px 22px; border-bottom: 1px solid var(--border);
+  }
+  .payment-block h4 { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .payment-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; background: var(--bg-subtle);
+    border-radius: var(--radius-sm); margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .payment-row .pay-info { display: flex; align-items: center; gap: 10px; }
+  .payment-row .pay-method {
+    font-size: 11px; padding: 2px 7px; background: var(--surface);
+    border-radius: 99px; color: var(--text-soft); border: 1px solid var(--border);
+  }
+
+  .timeline { padding: 16px 22px; }
+  .timeline-title {
+    font-size: 11px; color: var(--text-muted);
+    margin-bottom: 12px; font-weight: 500;
+  }
+  .timeline-item { display: flex; gap: 12px; padding: 8px 0; }
+  .timeline-item:not(:last-child) { border-bottom: 1px dashed var(--border); }
+  .timeline-dot {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .timeline-dot svg { width: 11px; height: 11px; }
+  .timeline-dot.created, .timeline-dot.sent { background: var(--info-soft); color: var(--info); }
+  .timeline-dot.relance { background: var(--warning-soft); color: var(--warning); }
+  .timeline-dot.payment { background: var(--success-soft); color: var(--success); }
+  .timeline-content { flex: 1; }
+  .timeline-text { font-size: 13px; }
+  .timeline-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ============ CLIENT GRID ============ */
+  .client-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px; padding: 16px;
+  }
+  .client-card {
+    padding: 16px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .client-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
+  .client-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .client-card .avatar { width: 36px; height: 36px; font-size: 13px; }
+  .client-card-name { font-size: 14px; font-weight: 600; }
+  .client-card-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding-top: 10px; border-top: 1px solid var(--border);
+  }
+  .client-stat-label { color: var(--text-muted); font-size: 11px; }
+  .client-stat-value {
+    font-family: 'Geist Mono', monospace; font-weight: 600;
+    margin-top: 2px; font-size: 13px;
+  }
+
+  /* ============ SETTINGS ============ */
+  .settings-grid { display: grid; gap: 16px; padding: 20px; }
+  .settings-card {
+    padding: 18px; border: 1px solid var(--border);
+    border-radius: var(--radius); background: var(--surface);
+  }
+  .settings-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .settings-card .desc { color: var(--text-muted); font-size: 12px; margin-bottom: 14px; }
+  .relance-template {
+    padding: 14px; background: var(--bg-subtle);
+    border-radius: var(--radius-sm); margin-bottom: 10px;
+  }
+  .relance-template-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px; gap: 10px; flex-wrap: wrap;
+  }
+  .relance-template textarea {
+    width: 100%; min-height: 100px; padding: 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'Geist Mono', monospace; font-size: 11.5px; resize: vertical;
+  }
+
+  /* ============ PAGES ============ */
+  .page { display: none; animation: pageIn 0.2s; }
+  .page.active { display: block; }
+  @keyframes pageIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ============ TOAST ============ */
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    padding: 12px 18px; background: var(--text); color: white;
+    border-radius: var(--radius); font-size: 13px;
+    box-shadow: var(--shadow-lg); z-index: 200;
+    transform: translateY(100px); opacity: 0;
+    transition: all 0.2s;
+    border-left: 3px solid var(--primary);
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ============ MOBILE NAV ============ */
+  .mobile-nav { display: none; gap: 4px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px; }
+  @media (max-width: 960px) { .mobile-nav { display: flex; } }
+  .mobile-nav .nav-item {
+    flex-shrink: 0; padding: 7px 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); border-radius: var(--radius-sm);
+  }
+  .mobile-nav .nav-item.active { background: var(--text); color: white; border-color: var(--text); }
+
+  /* ============ UTILITIES ============ */
+  .icon-btn {
+    background: transparent; border: none; cursor: pointer;
+    padding: 5px; border-radius: var(--radius-sm);
+    color: var(--text-muted); transition: all 0.15s;
+  }
+  .icon-btn:hover { background: var(--bg-subtle); color: var(--text); }
+  .icon-btn svg { width: 14px; height: 14px; display: block; }
+  .row-actions {
+    display: flex; gap: 2px; opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  tr:hover .row-actions { opacity: 1; }
+
+  .relance-section {
+    padding: 14px 22px; background: #fff7ed;
+    border-bottom: 1px solid var(--border);
+    border-left: 3px solid var(--warning);
+  }
+  .relance-section h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .relance-section p { font-size: 12.5px; color: var(--text-soft); margin-bottom: 0; }
+
+  .seg-control {
+    display: inline-flex; background: var(--bg-subtle);
+    border-radius: var(--radius-sm); padding: 2px;
+    border: 1px solid var(--border);
+  }
+  .seg-control button {
+    padding: 5px 12px; border: none; background: transparent;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    border-radius: 4px; color: var(--text-soft);
+    transition: all 0.15s; font-family: inherit;
+  }
+  .seg-control button.active {
+    background: var(--surface); color: var(--text);
+    box-shadow: var(--shadow-xs);
+  }
+
+  /* ============ INFO BANNER ============ */
+  .info-banner {
+    background: var(--primary-soft); border: 1px solid #b8d4ff;
+    color: var(--primary-hover);
+    padding: 10px 14px; border-radius: var(--radius-sm);
+    font-size: 12.5px; margin-bottom: 16px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .info-banner svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ============ PAYMENT QUICK ACTIONS ============ */
+  .quick-pay-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin-bottom: 14px;
+  }
+  .quick-pay-btn {
+    padding: 12px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--surface);
+    cursor: pointer; transition: all 0.15s; text-align: left;
+    font-family: inherit;
+  }
+  .quick-pay-btn:hover { border-color: var(--primary); background: var(--primary-soft); }
+  .quick-pay-btn .qp-label { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+  .quick-pay-btn .qp-value { font-size: 14px; font-weight: 600; font-family: 'Geist Mono', monospace; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">B</div>
+      <div class="brand-name">Billio<span>Suivi · v2.0</span></div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Pilotage</div>
+      <div class="nav-item active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Tableau de bord</span>
+      </div>
+      <div class="nav-item" data-page="invoices">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        <span>Factures suivies</span>
+        <span class="badge" id="navBadgeInvoices">0</span>
+      </div>
+      <div class="nav-item" data-page="relances">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span>Relances</span>
+        <span class="badge" id="navBadgeRelances">0</span>
+      </div>
+      <div class="nav-item" data-page="clients">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Clients</span>
+      </div>
+    </div>
+
+    <div class="nav-section" style="margin-top: 12px">
+      <div class="nav-label">Système</div>
+      <div class="nav-item" data-page="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Paramètres</span>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div id="userDisplay" style="margin-bottom: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);"></div>
+      <div id="syncStatus" style="padding: 8px 10px; margin-bottom: 8px; border-radius: var(--radius-sm); font-size: 11px; display: flex; align-items: center; gap: 6px;"></div>
+      <div class="footer-card">
+        <div class="footer-stat"><span class="label">Encaissé</span><span class="val success" id="footPaid">0 €</span></div>
+        <div class="footer-stat"><span class="label">En attente</span><span class="val warning" id="footPending">0 €</span></div>
+        <div class="footer-stat"><span class="label">En retard</span><span class="val danger" id="footOverdue">0 €</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+
+    <div class="mobile-nav">
+      <div class="nav-item active" data-page="dashboard">Tableau de bord</div>
+      <div class="nav-item" data-page="invoices">Factures</div>
+      <div class="nav-item" data-page="relances">Relances</div>
+      <div class="nav-item" data-page="clients">Clients</div>
+      <div class="nav-item" data-page="settings">Paramètres</div>
+    </div>
+
+    <!-- ============ DASHBOARD ============ -->
+    <section class="page active" id="page-dashboard">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Tableau de bord</div>
+          <div class="page-subtitle">Vue d'ensemble du suivi de vos règlements</div>
+        </div>
+        <div class="topbar-actions">
+          <div class="seg-control">
+            <button data-period="month" class="active">Ce mois</button>
+            <button data-period="ytd">Année</button>
+            <button data-period="all">Tout</button>
+          </div>
+          <button class="btn btn-accent" onclick="openInvoiceModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Ajouter une facture
+          </button>
+        </div>
+      </div>
+
+      <div class="month-bar">
+        <div class="month-nav">
+          <button class="month-nav-btn" onclick="prevMonth()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="month-current" id="monthCurrent">—</div>
+          <button class="month-nav-btn" onclick="nextMonth()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="month-chip-divider"></div>
+        <div class="month-chip" onclick="setMonth('today')">Mois courant</div>
+        <div class="month-chip" onclick="setMonth('all')">Tout afficher</div>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Évolution mensuelle</div>
+              <div class="chart-subtitle">Facturé vs encaissé sur les 12 derniers mois</div>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item"><span class="legend-dot" style="background:#0070f3"></span>Facturé</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#00a86b"></span>Encaissé</div>
+              <div class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>Impayé</div>
+            </div>
+          </div>
+          <canvas class="chart-canvas" id="chartMonthly"></canvas>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <div class="chart-title">Répartition</div>
+              <div class="chart-subtitle">Statut des factures du mois</div>
+            </div>
+          </div>
+          <canvas class="chart-canvas" id="chartDonut"></canvas>
+          <div id="donutLegend" style="margin-top: 10px"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Factures récentes</div>
+          <button class="btn btn-sm btn-ghost" onclick="showPage('invoices')">
+            Voir toutes
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>N°</th><th>Client</th><th>Émise le</th><th>Échéance</th><th>Statut</th><th class="right">Montant TTC</th><th class="right">Restant</th></tr>
+            </thead>
+            <tbody id="recentTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ INVOICES ============ -->
+    <section class="page" id="page-invoices">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Factures suivies</div>
+          <div class="page-subtitle">Factures importées depuis votre logiciel de facturation</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="exportData()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exporter CSV
+          </button>
+          <button class="btn btn-accent" onclick="openInvoiceModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Ajouter une facture
+          </button>
+        </div>
+      </div>
+
+      <div class="info-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div>Saisissez ici les factures déjà émises depuis votre logiciel pour activer leur suivi : numéro, client, montant, échéance. Vous pourrez ensuite enregistrer les paiements et envoyer des relances.</div>
+      </div>
+
+      <div class="month-bar">
+        <div class="month-nav">
+          <button class="month-nav-btn" onclick="invoicePrevMonth()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="month-current" id="invoiceMonthCurrent">—</div>
+          <button class="month-nav-btn" onclick="invoiceNextMonth()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="month-chip-divider"></div>
+        <div class="month-chip" onclick="setInvoiceMonth('all')">Tout</div>
+        <div class="month-chip" onclick="setInvoiceMonth('today')">Mois courant</div>
+        <div class="month-chip" onclick="setInvoiceMonth('ytd')">Année en cours</div>
+      </div>
+
+      <div class="kpi-grid" id="invoiceMonthStats" style="margin-bottom: 20px;"></div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="filters">
+            <div class="filter-pill active" data-filter="all">Toutes <span class="count" id="cntAll">0</span></div>
+            <div class="filter-pill" data-filter="pending">En attente <span class="count" id="cntPending">0</span></div>
+            <div class="filter-pill" data-filter="paid">Payées <span class="count" id="cntPaid">0</span></div>
+            <div class="filter-pill" data-filter="overdue">En retard <span class="count" id="cntOverdue">0</span></div>
+            <div class="filter-pill" data-filter="partial">Partielles <span class="count" id="cntPartial">0</span></div>
+          </div>
+          <input type="text" class="search-input" placeholder="Rechercher..." id="searchInvoice">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>N°</th><th>Client</th><th>Émise le</th><th>Échéance</th><th>Statut</th><th>Relance</th><th class="right">Montant TTC</th><th class="right">Restant dû</th><th></th></tr>
+            </thead>
+            <tbody id="invoicesTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RELANCES ============ -->
+    <section class="page" id="page-relances">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Relances</div>
+          <div class="page-subtitle">Factures en retard de paiement à traiter</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn" onclick="showPage('settings')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6"/></svg>
+            Configurer seuils
+          </button>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="relanceKpis"></div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div style="display:flex; align-items:center; gap:10px">
+            <span class="relance-pill j15" id="seuil1Label" style="font-size: 13px; padding: 4px 12px">J+15</span>
+            <div class="panel-title">Premier rappel — <span style="color:var(--text-soft); font-weight:500" id="seuil1Desc">factures en retard</span></div>
+          </div>
+          <button class="btn btn-sm" onclick="markLevelReminded(1)">Marquer toutes envoyées</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>N°</th><th>Client</th><th>Échéance</th><th>Retard</th><th>Statut relance</th><th class="right">Restant dû</th><th></th></tr></thead>
+            <tbody id="relances-1"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div style="display:flex; align-items:center; gap:10px">
+            <span class="relance-pill j22" id="seuil2Label" style="font-size: 13px; padding: 4px 12px">J+22</span>
+            <div class="panel-title">Deuxième relance — <span style="color:var(--text-soft); font-weight:500" id="seuil2Desc">factures en retard</span></div>
+          </div>
+          <button class="btn btn-sm" onclick="markLevelReminded(2)">Marquer toutes envoyées</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>N°</th><th>Client</th><th>Échéance</th><th>Retard</th><th>Statut relance</th><th class="right">Restant dû</th><th></th></tr></thead>
+            <tbody id="relances-2"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div style="display:flex; align-items:center; gap:10px">
+            <span class="relance-pill j30" id="seuil3Label" style="font-size: 13px; padding: 4px 12px">J+30</span>
+            <div class="panel-title">Mise en demeure — <span style="color:var(--text-soft); font-weight:500" id="seuil3Desc">factures en retard</span></div>
+          </div>
+          <button class="btn btn-sm" onclick="markLevelReminded(3)">Marquer toutes envoyées</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>N°</th><th>Client</th><th>Échéance</th><th>Retard</th><th>Statut relance</th><th class="right">Restant dû</th><th></th></tr></thead>
+            <tbody id="relances-3"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CLIENTS ============ -->
+    <section class="page" id="page-clients">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Clients</div>
+          <div class="page-subtitle">Carnet d'adresses et historique de règlement</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-accent" onclick="openClientModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nouveau client
+          </button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="client-grid" id="clientsGrid"></div>
+      </div>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section class="page" id="page-settings">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Paramètres</div>
+          <div class="page-subtitle">Configuration du suivi et modèles de relance</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="settings-grid">
+          <div class="settings-card">
+            <h3>Gestion des utilisateurs</h3>
+            <div class="desc">Créez, listez et supprimez les comptes d'accès au CRM. Tous les utilisateurs ont les mêmes droits.</div>
+
+            <div style="margin-bottom: 16px; padding: 14px; background: var(--bg-subtle); border-radius: var(--radius-sm)">
+              <div style="font-size: 13px; font-weight: 600; margin-bottom: 10px">➕ Créer un nouvel utilisateur</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Email</label>
+                  <input type="email" id="newUserEmail" placeholder="collegue@exemple.com">
+                </div>
+                <div class="form-group">
+                  <label>Mot de passe initial</label>
+                  <input type="text" id="newUserPassword" placeholder="Min. 6 caractères">
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="createUser()" style="margin-top: 8px">Créer le compte</button>
+              <div style="margin-top: 10px; font-size: 11px; color: var(--text-muted)">💡 Communiquez ces identifiants au collègue. Il pourra changer son mot de passe plus tard.</div>
+            </div>
+
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px">👥 Utilisateurs actuels</div>
+            <div id="usersList" style="margin-bottom: 8px"></div>
+            <button class="btn btn-sm" onclick="loadUsers()">🔄 Rafraîchir la liste</button>
+          </div>
+
+          <div class="settings-card">
+            <h3>Connexion & partage</h3>
+            <div class="desc" id="connectionDesc">Mode local — données stockées sur cet appareil uniquement.</div>
+            <div style="display:flex; gap:8px; flex-wrap: wrap;">
+              <button class="btn" onclick="reopenSetup()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><polyline points="21 3 21 8 16 8"/></svg>
+                Changer la connexion
+              </button>
+              <button class="btn" onclick="copyShareLink()" id="btnCopyLink" style="display:none">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Copier le lien à partager
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-card">
+            <h3>Informations entreprise</h3>
+            <div class="desc">Apparaîtront en signature des emails de relance.</div>
+            <div class="form-row">
+              <div class="form-group"><label>Nom</label><input type="text" id="setCompanyName"></div>
+              <div class="form-group"><label>Email</label><input type="email" id="setEmail"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Téléphone</label><input type="tel" id="setPhone"></div>
+              <div class="form-group"><label>Délai de paiement par défaut (jours)</label><input type="number" id="setPaymentDelay"></div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:12px" onclick="saveSettings()">Enregistrer</button>
+          </div>
+
+          <div class="settings-card">
+            <h3>Seuils et modèles de relance</h3>
+            <div class="desc">3 niveaux configurables. Variables : <span class="mono">{{client}}</span>, <span class="mono">{{numero}}</span>, <span class="mono">{{montant}}</span>, <span class="mono">{{echeance}}</span>, <span class="mono">{{retard}}</span>.</div>
+            <div id="relanceTemplatesContainer"></div>
+            <button class="btn btn-primary" style="margin-top:8px" onclick="saveRelanceTemplates()">Enregistrer les modèles</button>
+          </div>
+
+          <div class="settings-card">
+            <h3>Données</h3>
+            <div class="desc">Sauvegarde et restauration (vos données sont stockées localement).</div>
+            <div style="display:flex; gap:8px; flex-wrap: wrap;">
+              <button class="btn" onclick="exportAll()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exporter (JSON)
+              </button>
+              <button class="btn" onclick="document.getElementById('importFile').click()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Importer
+              </button>
+              <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAll(event)">
+              <button class="btn btn-danger" onclick="resetAll()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+                Réinitialiser
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============ MODALS ============ -->
+<!-- Invoice Modal: SIMPLIFIED for tracking only -->
+<div class="modal-overlay" id="invoiceModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="invoiceModalTitle">Ajouter une facture à suivre</div>
+      <button class="close-btn" onclick="closeModal('invoiceModal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="info-banner" style="margin-bottom: 14px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <div>Recopiez ici les informations de la facture émise depuis votre logiciel pour activer son suivi.</div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>N° de facture <span class="req">*</span></label>
+          <input type="text" id="invNumber" placeholder="Ex: F-2026-0042">
+          <div class="hint">Tel qu'inscrit sur la facture émise</div>
+        </div>
+        <div class="form-group">
+          <label>Client <span class="req">*</span></label>
+          <select id="invClient" onchange="checkNewClient()"></select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date d'émission <span class="req">*</span></label>
+          <input type="date" id="invDate">
+        </div>
+        <div class="form-group">
+          <label>Date d'échéance <span class="req">*</span></label>
+          <input type="date" id="invDueDate">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Montant TTC <span class="req">*</span></label>
+          <input type="number" id="invAmount" step="0.01" placeholder="0.00">
+          <div class="hint">Montant total avec TVA</div>
+        </div>
+        <div class="form-group">
+          <label>Montant HT (optionnel)</label>
+          <input type="number" id="invAmountHT" step="0.01" placeholder="0.00">
+          <div class="hint">Pour information</div>
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Objet / Description (optionnel)</label>
+          <input type="text" id="invSubject" placeholder="Ex: Prestation conseil — Janvier 2026">
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Notes internes (optionnel)</label>
+          <textarea id="invNotes" placeholder="Conditions particulières, contact, mode de paiement attendu..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm" id="deleteInvBtn" style="display:none" onclick="deleteInvoice()">Supprimer</button>
+      <div style="display:flex; gap:8px; margin-left:auto">
+        <button class="btn" onclick="closeModal('invoiceModal')">Annuler</button>
+        <button class="btn btn-primary" onclick="saveInvoice()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Enregistrer un paiement</div>
+      <button class="close-btn" onclick="closeModal('paymentModal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div id="paymentContext" style="margin-bottom: 14px; padding: 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); font-size: 13px;"></div>
+
+      <div class="quick-pay-grid" id="quickPayGrid"></div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Montant reçu <span class="req">*</span></label>
+          <input type="number" id="payAmount" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label>Date du paiement <span class="req">*</span></label>
+          <input type="date" id="payDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Méthode</label>
+          <select id="payMethod">
+            <option value="Virement">Virement bancaire</option>
+            <option value="Chèque">Chèque</option>
+            <option value="Espèces">Espèces</option>
+            <option value="Carte">Carte bancaire</option>
+            <option value="Prélèvement">Prélèvement</option>
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Référence (optionnel)</label>
+          <input type="text" id="payRef" placeholder="N° chèque, virement...">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Note (optionnel)</label>
+          <input type="text" id="payNote" placeholder="Acompte, solde...">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button class="btn" onclick="closeModal('paymentModal')">Annuler</button>
+        <button class="btn btn-success" onclick="savePayment()">Enregistrer le paiement</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Client Modal -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="clientModalTitle">Nouveau client</div>
+      <button class="close-btn" onclick="closeModal('clientModal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Nom / Raison sociale <span class="req">*</span></label><input type="text" id="cliName"></div>
+        <div class="form-group"><label>Contact</label><input type="text" id="cliContact"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input type="email" id="cliEmail"></div>
+        <div class="form-group"><label>Téléphone</label><input type="tel" id="cliPhone"></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group"><label>Notes</label><textarea id="cliNotes"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-danger btn-sm" id="deleteCliBtn" style="display:none" onclick="deleteClient()">Supprimer</button>
+      <div style="display:flex; gap:8px; margin-left:auto">
+        <button class="btn" onclick="closeModal('clientModal')">Annuler</button>
+        <button class="btn btn-primary" onclick="saveClient()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width: 720px">
+    <div class="modal-head">
+      <div class="modal-title" id="detailTitle">Facture</div>
+      <button class="close-btn" onclick="closeModal('detailModal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="invoice-meta-grid" id="detailMeta"></div>
+    <div id="detailRelance"></div>
+    <div class="payment-block" id="detailPayments"></div>
+    <div class="timeline" id="detailTimeline"></div>
+    <div class="modal-foot">
+      <div style="display:flex; gap:6px; flex-wrap:wrap">
+        <button class="btn btn-sm" id="btnEditInv">Modifier</button>
+      </div>
+      <div style="display:flex; gap:8px; margin-left:auto; flex-wrap: wrap">
+        <button class="btn btn-sm" onclick="closeModal('detailModal')">Fermer</button>
+        <button class="btn btn-sm" id="btnSendRelance">Envoyer relance</button>
+        <button class="btn btn-success btn-sm" id="btnRecordPayment">+ Paiement</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Relance Modal -->
+<div class="modal-overlay" id="relanceModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Envoyer une relance</div>
+      <button class="close-btn" onclick="closeModal('relanceModal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Niveau de relance</label>
+          <select id="relLevel" onchange="updateRelanceTemplate()"></select>
+        </div>
+        <div class="form-group">
+          <label>Méthode</label>
+          <select id="relMethod">
+            <option value="email">Email</option>
+            <option value="phone">Téléphone</option>
+            <option value="post">Courrier postal</option>
+            <option value="other">Autre</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group"><label>Objet</label><input type="text" id="relSubject"></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Message</label>
+          <textarea id="relMessage" style="min-height: 200px; font-family: 'Geist Mono', monospace; font-size: 12px"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm" onclick="copyRelance()">Copier</button>
+      <div style="display:flex; gap:8px; margin-left:auto">
+        <button class="btn" onclick="closeModal('relanceModal')">Annuler</button>
+        <button class="btn btn-accent" onclick="confirmRelance()">Marquer envoyée</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div class="modal-overlay" id="loginScreen" style="background: linear-gradient(135deg, #0070f3 0%, #00d4ff 100%); padding: 0; align-items: center;">
+  <div class="modal" style="max-width: 420px; box-shadow: 0 25px 50px rgba(0,0,0,0.25)">
+    <div style="padding: 32px 28px 0; text-align: center">
+      <div style="width: 56px; height: 56px; margin: 0 auto 16px; background: linear-gradient(135deg, var(--primary) 0%, #00d4ff 100%); border-radius: 12px; display: grid; place-items: center; color: white; font-weight: 700; font-size: 28px; letter-spacing: -0.05em; box-shadow: 0 4px 14px rgba(0,112,243,0.3)">B</div>
+      <h2 style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px">Billio Suivi</h2>
+      <p style="color: var(--text-soft); font-size: 13px">Connectez-vous pour accéder au CRM</p>
+      <div style="font-size: 10px; color: var(--text-muted); margin-top: 6px; font-family: 'Geist Mono', monospace;">v2.0 · auth</div>
+    </div>
+    <div class="modal-body" style="padding-top: 24px">
+      <div class="form-row full" style="margin-bottom: 12px">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="vous@exemple.com" autocomplete="email">
+        </div>
+      </div>
+      <div class="form-row full" style="margin-bottom: 12px">
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+        </div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-soft); cursor: pointer; margin-bottom: 18px">
+        <input type="checkbox" id="loginRemember" checked style="width: auto; margin: 0">
+        <span>Se souvenir de moi</span>
+      </label>
+      <button id="loginBtn" class="btn btn-accent" onclick="doLogin()" style="width: 100%; padding: 11px; font-size: 14px; justify-content: center">
+        Se connecter
+      </button>
+
+      <div style="margin-top: 16px; padding: 10px 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); font-size: 11.5px; color: var(--text-muted); text-align: center; line-height: 1.5">
+        🔒 Connexion sécurisée<br>
+        Pas encore de compte ? Demandez à votre administrateur.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SETUP SCREEN (legacy, hidden) ============ -->
+<div class="modal-overlay" id="setupModal" style="background: rgba(9,9,11,0.85)">
+  <div class="modal" style="max-width: 540px">
+    <div class="modal-head">
+      <div class="modal-title">🔗 Connexion à votre base partagée</div>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom: 16px; font-size: 13.5px; color: var(--text-soft); line-height: 1.6">
+        <strong>Première utilisation ?</strong><br>
+        Pour partager les données en temps réel avec votre équipe, ce CRM utilise <strong>Supabase</strong> (base de données gratuite). Suivez le guide <code style="background:var(--bg-subtle); padding:1px 6px; border-radius:4px; font-size:12px">GUIDE-DEPLOIEMENT.md</code> fourni avec le fichier pour obtenir vos identifiants.
+      </div>
+
+      <div style="background: var(--info-soft); border: 1px solid #c7d2fe; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px; font-size: 12px; color: var(--info)">
+        💡 Une fois configuré, tous les utilisateurs qui accèdent à cette URL avec ces mêmes identifiants verront les mêmes données.
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label>URL Supabase <span class="req">*</span></label>
+          <input type="text" id="setupUrl" placeholder="https://xxxxx.supabase.co">
+          <div class="hint">Project URL (Settings → API)</div>
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="form-group">
+          <label>Clé publique (anon key) <span class="req">*</span></label>
+          <input type="text" id="setupKey" placeholder="eyJhbGc..." style="font-family: 'Geist Mono', monospace; font-size: 11px">
+          <div class="hint">Project API Keys → anon / public</div>
+        </div>
+      </div>
+
+      <details style="margin-top: 14px">
+        <summary style="cursor: pointer; font-size: 12px; color: var(--text-muted)">Mode local (sans partage)</summary>
+        <div style="padding: 10px 0; font-size: 12px; color: var(--text-soft)">
+          Si vous préférez utiliser l'app sans partage (données stockées uniquement sur cet appareil), <a href="#" onclick="useLocalMode(); return false;" style="color: var(--primary)">cliquez ici</a>.
+        </div>
+      </details>
+    </div>
+    <div class="modal-foot">
+      <div></div>
+      <div style="display:flex; gap:8px">
+        <button class="btn btn-accent" onclick="connectSupabase()">Se connecter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   BILLIO SUIVI v3 - Suivi de règlement uniquement
+   ============================================================ */
+
+let state = {
+  clients: [],
+  invoices: [],
+  settings: {
+    companyName: 'Mon Entreprise',
+    email: '', phone: '',
+    paymentDelay: 30,
+  },
+  relanceTemplates: [
+    { level: 1, triggerDays: 15,
+      subject: 'Rappel — Facture {{numero}} en attente de règlement',
+      body: `Bonjour {{client}},\n\nSauf erreur de notre part, nous n'avons pas encore reçu le règlement de la facture {{numero}} d'un montant de {{montant}}, dont l'échéance était fixée au {{echeance}}.\n\nIl s'agit peut-être d'un oubli. Pourriez-vous procéder au règlement dans les meilleurs délais ?\n\nSi le paiement a été effectué entre-temps, merci de ne pas tenir compte de ce message.\n\nCordialement,` },
+    { level: 2, triggerDays: 22,
+      subject: 'Relance — Facture {{numero}} en retard de {{retard}} jours',
+      body: `Bonjour {{client}},\n\nMalgré notre précédent rappel, la facture {{numero}} d'un montant de {{montant}} demeure impayée à ce jour, soit un retard de {{retard}} jours.\n\nNous vous demandons de bien vouloir régulariser cette situation sous 8 jours.\n\nN'hésitez pas à nous contacter en cas de difficulté.\n\nCordialement,` },
+    { level: 3, triggerDays: 30,
+      subject: 'MISE EN DEMEURE — Facture {{numero}}',
+      body: `Madame, Monsieur {{client}},\n\nMalgré nos relances précédentes, la facture {{numero}} d'un montant de {{montant}} reste impayée, soit un retard de {{retard}} jours.\n\nLa présente vaut MISE EN DEMEURE de payer sous 8 jours.\n\nÀ défaut, nous saisirons les juridictions compétentes, conformément à l'article L441-10 du Code de commerce (intérêts de retard et indemnité forfaitaire de 40 €).\n\nSalutations distinguées.` }
+  ]
+};
+
+let currentInvoiceId = null;
+let currentClientId = null;
+let currentRelanceInvId = null;
+let currentPaymentInvId = null;
+let selectedMonth = null;
+let invoiceSelectedMonth = null;
+
+const STORAGE_KEY = 'billio-suivi-v3';
+const CONFIG_KEY = 'billio-config-v1';
+
+// ============================================================
+// CONFIGURATION SUPABASE - PRÉ-REMPLIE
+// ============================================================
+const SUPABASE_URL = 'https://okqbbcikjypnnqcarnws.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9rcWJiY2lranlwbm5xY2FybndzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MTkzMTUsImV4cCI6MjA5MzQ5NTMxNX0.zgHtPmQ6XcpbbXuUKqJPMl-E7qC00RbysuKlHUrULEg';
+// ============================================================
+
+// Mode: 'cloud' (Supabase) ou 'local'
+let mode = 'cloud';
+let sb = null;
+let cloudReady = false;
+let currentUser = null;
+
+function loadConfig() {
+  try {
+    const cfg = localStorage.getItem(CONFIG_KEY);
+    return cfg ? JSON.parse(cfg) : null;
+  } catch (e) { return null; }
+}
+
+function saveConfig(cfg) {
+  try { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); } catch (e) {}
+}
+
+function initSupabase(url, key) {
+  if (!window.supabase) return false;
+  try {
+    sb = window.supabase.createClient(url, key);
+    return true;
+  } catch (e) { return false; }
+}
+
+async function connectSupabase() {
+  const url = document.getElementById('setupUrl').value.trim();
+  const key = document.getElementById('setupKey').value.trim();
+  if (!url || !key) { toast('URL et clé requises'); return; }
+  if (!url.includes('supabase')) { toast('URL Supabase invalide'); return; }
+
+  if (!initSupabase(url, key)) {
+    toast('Erreur de connexion au SDK Supabase');
+    return;
+  }
+
+  // Test connection by trying to fetch state
+  try {
+    const { data, error } = await sb.from('crm_data').select('*').limit(1);
+    if (error && error.code !== 'PGRST116') {
+      // Table doesn't exist or other error
+      toast('Erreur : ' + (error.message || 'connexion échouée'));
+      console.error(error);
+      return;
+    }
+    saveConfig({ mode: 'cloud', url, key });
+    mode = 'cloud';
+    cloudReady = true;
+    closeModal('setupModal');
+    await loadState();
+    if (state.invoices.length === 0 && state.clients.length === 0) {
+      seedDemoData();
+      await saveState();
+    }
+    selectedMonth = monthKey(new Date());
+    refreshAll();
+    setupRealtimeSync();
+    toast('✅ Connecté à votre base partagée');
+  } catch (e) {
+    toast('Erreur : ' + e.message);
+    console.error(e);
+  }
+}
+
+function useLocalMode() {
+  saveConfig({ mode: 'local' });
+  mode = 'local';
+  closeModal('setupModal');
+  initLocal();
+}
+
+async function initLocal() {
+  await loadState();
+  if (state.invoices.length === 0 && state.clients.length === 0) {
+    seedDemoData();
+    await saveState();
+  }
+  selectedMonth = monthKey(new Date());
+  refreshAll();
+}
+
+async function saveState() {
+  const json = JSON.stringify(state);
+  if (mode === 'cloud' && sb && cloudReady) {
+    try {
+      // Upsert single row with id=1
+      const { error } = await sb.from('crm_data').upsert({
+        id: 1,
+        data: state,
+        updated_at: new Date().toISOString()
+      });
+      if (error) {
+        console.error('Save error:', error);
+        toast('⚠️ Erreur de sauvegarde cloud');
+        // Fallback to local
+        try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
+      }
+      return;
+    } catch(e) {
+      console.error(e);
+    }
+  }
+  try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
+}
+
+async function loadState() {
+  if (mode === 'cloud' && sb) {
+    try {
+      const { data, error } = await sb.from('crm_data').select('data').eq('id', 1).maybeSingle();
+      if (error) {
+        console.error('Load error:', error);
+      } else if (data && data.data) {
+        state = data.data;
+        cloudReady = true;
+        return;
+      }
+      cloudReady = true;
+    } catch(e) {
+      console.error(e);
+    }
+  }
+  try {
+    const ls = localStorage.getItem(STORAGE_KEY);
+    if (ls) state = JSON.parse(ls);
+  } catch(e) {}
+}
+
+function setupRealtimeSync() {
+  if (mode !== 'cloud' || !sb) return;
+  // Listen to changes from other users
+  sb
+    .channel('crm-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'crm_data' }, (payload) => {
+      if (payload.new && payload.new.data) {
+        const newState = payload.new.data;
+        // Only update if different (avoid loop)
+        if (JSON.stringify(newState) !== JSON.stringify(state)) {
+          state = newState;
+          refreshAll();
+          showSyncIndicator();
+        }
+      }
+    })
+    .subscribe();
+}
+
+function showSyncIndicator() {
+  const el = document.getElementById('toast');
+  el.textContent = '🔄 Mise à jour reçue';
+  el.style.borderLeftColor = 'var(--success)';
+  el.classList.add('show');
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => { el.style.borderLeftColor = ''; }, 200);
+  }, 1800);
+}
+
+// ---------- HELPERS ----------
+const fmt = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0) + ' €';
+const fmtCompact = (n) => {
+  if (Math.abs(n) >= 1000) return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(n/1000) + 'k';
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n);
+};
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDateLong = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—';
+const today = () => new Date().toISOString().split('T')[0];
+const daysDiff = (d1, d2) => Math.floor((new Date(d1) - new Date(d2)) / 86400000);
+const uid = () => Math.random().toString(36).slice(2, 11);
+const initials = (name) => (name || '?').split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+const monthKey = (date) => { const d = new Date(date); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; };
+const monthLabel = (key) => {
+  if (!key) return 'Tous les mois';
+  if (key === 'ytd_dash' || key === 'ytd') return `Année ${new Date().getFullYear()}`;
+  const [y, m] = key.split('-');
+  const names = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  return `${names[parseInt(m)-1]} ${y}`;
+};
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+function getClient(id) { return state.clients.find(c => c.id === id); }
+function getInvoice(id) { return state.invoices.find(i => i.id === id); }
+
+// SIMPLIFIED: amount stored directly
+function invoiceTotal(inv) { return inv.amount || 0; }
+function invoicePaid(inv) { return (inv.payments || []).reduce((s, p) => s + (p.amount || 0), 0); }
+function invoiceRemaining(inv) { return Math.max(0, invoiceTotal(inv) - invoicePaid(inv)); }
+
+function computeStatus(inv) {
+  const total = invoiceTotal(inv), paid = invoicePaid(inv);
+  if (paid >= total - 0.01 && total > 0) return 'paid';
+  if (paid > 0 && paid < total) return 'partial';
+  if (inv.dueDate && new Date(inv.dueDate) < new Date(today())) return 'overdue';
+  return 'pending';
+}
+
+function statusLabel(s) {
+  return { pending: 'En attente', paid: 'Payée', overdue: 'En retard', partial: 'Partielle' }[s] || s;
+}
+
+function nextRelanceLevel(inv) {
+  const sent = (inv.relances || []).length;
+  return Math.min(sent + 1, state.relanceTemplates.length);
+}
+
+// ---------- NAVIGATION ----------
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.page === page);
+  });
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'invoices') renderInvoices();
+  if (page === 'clients') renderClients();
+  if (page === 'relances') renderRelances();
+  if (page === 'settings') renderSettings();
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.nav-item').forEach(n => {
+  n.addEventListener('click', () => showPage(n.dataset.page));
+});
+
+// ---------- MONTH NAV ----------
+function setMonth(opt) {
+  if (opt === 'all') selectedMonth = null;
+  else if (opt === 'today') selectedMonth = monthKey(new Date());
+  renderDashboard();
+}
+function prevMonth() {
+  if (!selectedMonth) selectedMonth = monthKey(new Date());
+  if (selectedMonth === 'ytd_dash') selectedMonth = monthKey(new Date());
+  const [y, m] = selectedMonth.split('-').map(Number);
+  selectedMonth = monthKey(new Date(y, m - 2, 1));
+  renderDashboard();
+}
+function nextMonth() {
+  if (!selectedMonth) selectedMonth = monthKey(new Date());
+  if (selectedMonth === 'ytd_dash') selectedMonth = monthKey(new Date());
+  const [y, m] = selectedMonth.split('-').map(Number);
+  selectedMonth = monthKey(new Date(y, m, 1));
+  renderDashboard();
+}
+
+function setInvoiceMonth(opt) {
+  if (opt === 'all') invoiceSelectedMonth = null;
+  else if (opt === 'today') invoiceSelectedMonth = monthKey(new Date());
+  else if (opt === 'ytd') invoiceSelectedMonth = 'ytd';
+  renderInvoices();
+}
+function invoicePrevMonth() {
+  if (!invoiceSelectedMonth || invoiceSelectedMonth === 'ytd') invoiceSelectedMonth = monthKey(new Date());
+  const [y, m] = invoiceSelectedMonth.split('-').map(Number);
+  invoiceSelectedMonth = monthKey(new Date(y, m - 2, 1));
+  renderInvoices();
+}
+function invoiceNextMonth() {
+  if (!invoiceSelectedMonth || invoiceSelectedMonth === 'ytd') invoiceSelectedMonth = monthKey(new Date());
+  const [y, m] = invoiceSelectedMonth.split('-').map(Number);
+  invoiceSelectedMonth = monthKey(new Date(y, m, 1));
+  renderInvoices();
+}
+
+// ---------- DASHBOARD ----------
+function getInvoicesByMonth(m) {
+  if (!m) return state.invoices;
+  if (m === 'ytd_dash') {
+    const y = new Date().getFullYear();
+    return state.invoices.filter(i => new Date(i.date).getFullYear() === y);
+  }
+  return state.invoices.filter(i => monthKey(i.date) === m);
+}
+
+function renderDashboard() {
+  document.getElementById('monthCurrent').textContent = monthLabel(selectedMonth);
+
+  const allInv = state.invoices;
+  const filtered = getInvoicesByMonth(selectedMonth);
+
+  let facture = 0, encaisse = 0, attente = 0, retard = 0;
+  let nbFact = 0, nbPaid = 0, nbAttente = 0, nbRetard = 0;
+  filtered.forEach(i => {
+    const s = computeStatus(i);
+    const t = invoiceTotal(i), paid = invoicePaid(i);
+    facture += t; nbFact++;
+    encaisse += paid;
+    if (s === 'pending' || s === 'partial') { attente += (t - paid); nbAttente++; }
+    if (s === 'overdue') { retard += (t - paid); nbRetard++; }
+    if (s === 'paid') nbPaid++;
+  });
+
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-head">
+        <div class="kpi-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div>
+        Facturé
+      </div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(facture).replace(' €','')}</div>
+      <div class="kpi-meta">${nbFact} facture${nbFact>1?'s':''} suivie${nbFact>1?'s':''}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head">
+        <div class="kpi-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+        Encaissé
+      </div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(encaisse).replace(' €','')}</div>
+      <div class="kpi-meta">${nbPaid} payée${nbPaid>1?'s':''} · ${facture > 0 ? Math.round(encaisse/facture*100) : 0}% du facturé</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head">
+        <div class="kpi-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        En attente
+      </div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(attente).replace(' €','')}</div>
+      <div class="kpi-meta">${nbAttente} en cours</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head">
+        <div class="kpi-icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        En retard
+      </div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(retard).replace(' €','')}</div>
+      <div class="kpi-meta">${nbRetard} à relancer</div>
+    </div>
+  `;
+
+  drawMonthlyChart();
+  drawDonutChart(filtered);
+
+  const recent = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
+  const tb = document.getElementById('recentTbody');
+  if (recent.length === 0) {
+    tb.innerHTML = `<tr><td colspan="7"><div class="empty">
+      <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div>
+      <h3>Aucune facture sur cette période</h3>
+      <p>Ajoutez une facture émise depuis votre logiciel pour activer son suivi</p>
+      <button class="btn btn-accent" onclick="openInvoiceModal()">+ Ajouter une facture</button>
+    </div></td></tr>`;
+  } else {
+    tb.innerHTML = recent.map(renderInvoiceRow).join('');
+    attachRowClicks('recentTbody');
+  }
+
+  // Sidebar global stats
+  let gPaid = 0, gPending = 0, gOverdue = 0;
+  allInv.forEach(i => {
+    const s = computeStatus(i);
+    gPaid += invoicePaid(i);
+    if (s === 'pending' || s === 'partial') gPending += invoiceRemaining(i);
+    if (s === 'overdue') gOverdue += invoiceRemaining(i);
+  });
+  document.getElementById('footPaid').textContent = fmt(gPaid);
+  document.getElementById('footPending').textContent = fmt(gPending);
+  document.getElementById('footOverdue').textContent = fmt(gOverdue);
+  const overdueCount = allInv.filter(i => computeStatus(i) === 'overdue').length;
+  document.getElementById('navBadgeInvoices').textContent = allInv.length;
+  document.getElementById('navBadgeRelances').textContent = overdueCount;
+  document.getElementById('navBadgeRelances').style.display = overdueCount === 0 ? 'none' : '';
+}
+
+// ---------- CHARTS ----------
+function drawMonthlyChart() {
+  const canvas = document.getElementById('chartMonthly');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const months = [];
+  const now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ key: monthKey(d), label: d.toLocaleDateString('fr-FR', { month: 'short' }) });
+  }
+
+  const data = months.map(m => {
+    let billed = 0, collected = 0, unpaid = 0;
+    state.invoices.forEach(inv => {
+      if (monthKey(inv.date) === m.key) {
+        billed += invoiceTotal(inv);
+        if (computeStatus(inv) === 'overdue') unpaid += invoiceRemaining(inv);
+      }
+      (inv.payments || []).forEach(p => {
+        if (monthKey(p.date) === m.key) collected += p.amount;
+      });
+    });
+    return { ...m, billed, collected, unpaid };
+  });
+
+  const max = Math.max(...data.map(d => Math.max(d.billed, d.collected, d.unpaid)), 100);
+  const padL = 40, padR = 16, padT = 16, padB = 32;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  ctx.strokeStyle = '#e4e4e7';
+  ctx.lineWidth = 1;
+  ctx.font = '10px Geist, sans-serif';
+  ctx.fillStyle = '#a1a1aa';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (chartH / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(W - padR, y);
+    ctx.stroke();
+    const v = max - (max / 4) * i;
+    ctx.fillText(fmtCompact(v) + ' €', padL - 6, y + 3);
+  }
+
+  const barGroupW = chartW / data.length;
+  const barW = Math.max(4, (barGroupW - 6) / 3);
+  data.forEach((d, idx) => {
+    const x = padL + idx * barGroupW + 3;
+    const colors = ['#0070f3', '#00a86b', '#dc2626'];
+    const vals = [d.billed, d.collected, d.unpaid];
+    vals.forEach((v, i) => {
+      const h = max > 0 ? (v / max) * chartH : 0;
+      const y = padT + chartH - h;
+      ctx.fillStyle = colors[i];
+      const r = Math.min(2, h);
+      ctx.beginPath();
+      ctx.moveTo(x + i * barW, y + r);
+      ctx.arcTo(x + i * barW, y, x + i * barW + r, y, r);
+      ctx.lineTo(x + (i+1) * barW - r, y);
+      ctx.arcTo(x + (i+1) * barW, y, x + (i+1) * barW, y + r, r);
+      ctx.lineTo(x + (i+1) * barW, y + h);
+      ctx.lineTo(x + i * barW, y + h);
+      ctx.closePath();
+      ctx.fill();
+    });
+    ctx.fillStyle = '#52525b';
+    ctx.textAlign = 'center';
+    ctx.font = '10px Geist, sans-serif';
+    ctx.fillText(d.label, x + (3 * barW) / 2, H - padB + 14);
+  });
+}
+
+function drawDonutChart(invoices) {
+  const canvas = document.getElementById('chartDonut');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const buckets = { paid: 0, pending: 0, partial: 0, overdue: 0 };
+  invoices.forEach(i => {
+    const s = computeStatus(i);
+    buckets[s] = (buckets[s] || 0) + invoiceTotal(i);
+  });
+
+  const colors = { paid: '#00a86b', pending: '#6366f1', partial: '#f59e0b', overdue: '#dc2626' };
+  const labels = { paid: 'Payées', pending: 'En attente', partial: 'Partielles', overdue: 'En retard' };
+
+  const total = Object.values(buckets).reduce((s,v) => s+v, 0);
+  const cx = W/2, cy = H/2;
+  const radius = Math.min(W, H) * 0.38;
+  const inner = radius * 0.6;
+
+  if (total === 0) {
+    ctx.fillStyle = '#e4e4e7';
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.arc(cx, cy, inner, 0, Math.PI * 2, true);
+    ctx.fill();
+    ctx.fillStyle = '#a1a1aa';
+    ctx.textAlign = 'center';
+    ctx.font = '12px Geist, sans-serif';
+    ctx.fillText('Aucune donnée', cx, cy + 4);
+    document.getElementById('donutLegend').innerHTML = '';
+    return;
+  }
+
+  let angle = -Math.PI / 2;
+  const legend = [];
+  Object.entries(buckets).forEach(([k, v]) => {
+    if (v <= 0) return;
+    const slice = (v / total) * Math.PI * 2;
+    ctx.fillStyle = colors[k];
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, angle, angle + slice);
+    ctx.arc(cx, cy, inner, angle + slice, angle, true);
+    ctx.closePath();
+    ctx.fill();
+    angle += slice;
+    legend.push({ k, v, color: colors[k], label: labels[k] });
+  });
+
+  ctx.fillStyle = '#52525b';
+  ctx.textAlign = 'center';
+  ctx.font = '10px Geist, sans-serif';
+  ctx.fillText('Total', cx, cy - 6);
+  ctx.fillStyle = '#09090b';
+  ctx.font = '600 16px Geist, sans-serif';
+  ctx.fillText(fmtCompact(total) + ' €', cx, cy + 12);
+
+  document.getElementById('donutLegend').innerHTML = legend.map(l =>
+    `<div style="display:flex; justify-content:space-between; align-items:center; padding: 3px 0; font-size: 12px">
+      <div style="display:flex; align-items:center; gap:6px">
+        <span style="width:8px; height:8px; border-radius:2px; background:${l.color}"></span>
+        <span>${l.label}</span>
+      </div>
+      <span class="num" style="color:var(--text)">${fmt(l.v)}</span>
+    </div>`
+  ).join('');
+}
+
+// ---------- INVOICE ROW ----------
+function renderInvoiceRow(i) {
+  const cli = getClient(i.clientId) || { name: 'Client supprimé' };
+  const status = computeStatus(i);
+  const late = i.dueDate ? daysDiff(today(), i.dueDate) : 0;
+  const isLate = status === 'overdue';
+  const remaining = invoiceRemaining(i);
+  return `<tr class="row-link" data-id="${i.id}">
+    <td><span class="num">${escapeHtml(i.number)}</span></td>
+    <td><div class="client-cell"><div class="avatar">${initials(cli.name)}</div><div><div class="client-name">${escapeHtml(cli.name)}</div></div></div></td>
+    <td>${fmtDate(i.date)}</td>
+    <td>${fmtDate(i.dueDate)}${isLate ? ` <span class="days-late late">+${late}j</span>` : ''}</td>
+    <td><span class="badge-status ${status}">${statusLabel(status)}</span></td>
+    <td class="right amount">${fmt(invoiceTotal(i))}</td>
+    <td class="right amount" style="color:${remaining > 0 ? 'var(--warning)' : 'var(--success)'}">${fmt(remaining)}</td>
+  </tr>`;
+}
+
+function attachRowClicks(containerId) {
+  document.querySelectorAll(`#${containerId} tr.row-link`).forEach(r => {
+    r.addEventListener('click', () => openInvoiceDetail(r.dataset.id));
+  });
+}
+
+// ---------- INVOICES PAGE ----------
+let currentFilter = 'all';
+let currentSearch = '';
+
+function renderInvoices() {
+  let monthDisplay = 'Tous les mois';
+  if (invoiceSelectedMonth === 'ytd') monthDisplay = `Année ${new Date().getFullYear()}`;
+  else if (invoiceSelectedMonth) monthDisplay = monthLabel(invoiceSelectedMonth);
+  document.getElementById('invoiceMonthCurrent').textContent = monthDisplay;
+
+  let list = state.invoices.slice();
+  if (invoiceSelectedMonth === 'ytd') {
+    const y = new Date().getFullYear();
+    list = list.filter(i => new Date(i.date).getFullYear() === y);
+  } else if (invoiceSelectedMonth) {
+    list = list.filter(i => monthKey(i.date) === invoiceSelectedMonth);
+  }
+
+  let totalBilled = 0, totalPaid = 0, totalPending = 0, totalOverdue = 0;
+  list.forEach(i => {
+    const s = computeStatus(i);
+    totalBilled += invoiceTotal(i);
+    totalPaid += invoicePaid(i);
+    if (s === 'pending' || s === 'partial') totalPending += invoiceRemaining(i);
+    if (s === 'overdue') totalOverdue += invoiceRemaining(i);
+  });
+
+  document.getElementById('invoiceMonthStats').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-head"><div class="kpi-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div>Facturé</div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(totalBilled).replace(' €','')}</div>
+      <div class="kpi-meta">${list.length} facture${list.length>1?'s':''}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head"><div class="kpi-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>Encaissé</div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(totalPaid).replace(' €','')}</div>
+      <div class="kpi-meta">${totalBilled > 0 ? Math.round(totalPaid/totalBilled*100) : 0}% du facturé</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head"><div class="kpi-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>En attente</div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(totalPending).replace(' €','')}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head"><div class="kpi-icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg></div>En retard</div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(totalOverdue).replace(' €','')}</div>
+    </div>
+  `;
+
+  const counts = { all: list.length, pending: 0, paid: 0, overdue: 0, partial: 0 };
+  list.forEach(i => { const s = computeStatus(i); counts[s] = (counts[s]||0) + 1; });
+  document.getElementById('cntAll').textContent = counts.all;
+  document.getElementById('cntPending').textContent = counts.pending || 0;
+  document.getElementById('cntPaid').textContent = counts.paid || 0;
+  document.getElementById('cntOverdue').textContent = counts.overdue || 0;
+  document.getElementById('cntPartial').textContent = counts.partial || 0;
+
+  if (currentFilter !== 'all') list = list.filter(i => computeStatus(i) === currentFilter);
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    list = list.filter(i => {
+      const c = getClient(i.clientId);
+      return i.number.toLowerCase().includes(q) || (c && c.name.toLowerCase().includes(q)) || (i.subject && i.subject.toLowerCase().includes(q));
+    });
+  }
+  list.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  const tb = document.getElementById('invoicesTbody');
+  if (list.length === 0) {
+    tb.innerHTML = `<tr><td colspan="9"><div class="empty">
+      <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></div>
+      <h3>Aucune facture</h3>
+      <p>${currentFilter !== 'all' || currentSearch || invoiceSelectedMonth ? 'Aucun résultat pour ces filtres' : 'Ajoutez votre première facture pour activer son suivi'}</p>
+    </div></td></tr>`;
+    return;
+  }
+
+  tb.innerHTML = list.map(i => {
+    const cli = getClient(i.clientId) || { name: 'Client supprimé' };
+    const status = computeStatus(i);
+    const late = i.dueDate ? daysDiff(today(), i.dueDate) : 0;
+    const isLate = status === 'overdue';
+    const sentRel = (i.relances || []).length;
+    const remaining = invoiceRemaining(i);
+
+    let relanceCell = '<span style="color:var(--text-muted); font-size:11px">—</span>';
+    if (sentRel > 0) {
+      const lastLevel = i.relances[i.relances.length - 1].level;
+      relanceCell = `<span class="relance-pill done">R${sentRel} envoyée</span>`;
+    } else if (isLate) {
+      // Find applicable level
+      const tpls = [...state.relanceTemplates].sort((a,b) => a.triggerDays - b.triggerDays);
+      let applicable = null;
+      for (let idx = tpls.length - 1; idx >= 0; idx--) {
+        if (late >= tpls[idx].triggerDays) { applicable = tpls[idx]; break; }
+      }
+      if (applicable) {
+        const cls = applicable.triggerDays >= 30 ? 'j30' : (applicable.triggerDays >= 22 ? 'j22' : 'j15');
+        relanceCell = `<span class="relance-pill ${cls}">J+${applicable.triggerDays} à faire</span>`;
+      } else {
+        relanceCell = `<span style="color:var(--warning); font-size:11px; font-family:'Geist Mono',monospace">+${late}j</span>`;
+      }
+    }
+
+    return `<tr class="row-link ${isLate ? 'urgent' : ''}" data-id="${i.id}">
+      <td><span class="num">${escapeHtml(i.number)}</span></td>
+      <td><div class="client-cell"><div class="avatar">${initials(cli.name)}</div><div><div class="client-name">${escapeHtml(cli.name)}</div>${cli.email ? `<div class="client-sub">${escapeHtml(cli.email)}</div>` : ''}</div></div></td>
+      <td>${fmtDate(i.date)}</td>
+      <td>${fmtDate(i.dueDate)}${isLate ? ` <span class="days-late late">+${late}j</span>` : ''}</td>
+      <td><span class="badge-status ${status}">${statusLabel(status)}</span></td>
+      <td>${relanceCell}</td>
+      <td class="right amount">${fmt(invoiceTotal(i))}</td>
+      <td class="right amount" style="color:${remaining > 0 ? 'var(--warning)' : 'var(--success)'}">${fmt(remaining)}</td>
+      <td><div class="row-actions">
+        ${remaining > 0 ? `<button class="icon-btn" title="Enregistrer paiement" onclick="event.stopPropagation(); openPaymentModal('${i.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></button>` : ''}
+        ${(status === 'overdue' || status === 'partial') ? `<button class="icon-btn" title="Relancer" onclick="event.stopPropagation(); openRelanceModal('${i.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></button>` : ''}
+        <button class="icon-btn" title="Modifier" onclick="event.stopPropagation(); openInvoiceModal('${i.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  attachRowClicks('invoicesTbody');
+}
+
+document.querySelectorAll('#page-invoices .filter-pill').forEach(p => {
+  p.addEventListener('click', () => {
+    document.querySelectorAll('#page-invoices .filter-pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+    currentFilter = p.dataset.filter;
+    renderInvoices();
+  });
+});
+document.getElementById('searchInvoice').addEventListener('input', e => {
+  currentSearch = e.target.value;
+  renderInvoices();
+});
+
+// ---------- INVOICE MODAL (SIMPLIFIED) ----------
+function openInvoiceModal(id) {
+  currentInvoiceId = id || null;
+  refreshClientSelect();
+  if (id) {
+    const inv = getInvoice(id);
+    document.getElementById('invoiceModalTitle').textContent = `Modifier ${inv.number}`;
+    document.getElementById('invNumber').value = inv.number;
+    document.getElementById('invDate').value = inv.date;
+    document.getElementById('invDueDate').value = inv.dueDate;
+    document.getElementById('invClient').value = inv.clientId;
+    document.getElementById('invAmount').value = inv.amount || '';
+    document.getElementById('invAmountHT').value = inv.amountHT || '';
+    document.getElementById('invSubject').value = inv.subject || '';
+    document.getElementById('invNotes').value = inv.notes || '';
+    document.getElementById('deleteInvBtn').style.display = '';
+  } else {
+    document.getElementById('invoiceModalTitle').textContent = 'Ajouter une facture à suivre';
+    document.getElementById('invNumber').value = '';
+    document.getElementById('invDate').value = today();
+    const due = new Date();
+    due.setDate(due.getDate() + (state.settings.paymentDelay || 30));
+    document.getElementById('invDueDate').value = due.toISOString().split('T')[0];
+    document.getElementById('invClient').value = state.clients[0]?.id || '';
+    document.getElementById('invAmount').value = '';
+    document.getElementById('invAmountHT').value = '';
+    document.getElementById('invSubject').value = '';
+    document.getElementById('invNotes').value = '';
+    document.getElementById('deleteInvBtn').style.display = 'none';
+  }
+  document.getElementById('invoiceModal').classList.add('show');
+  setTimeout(() => document.getElementById('invNumber').focus(), 100);
+}
+
+function refreshClientSelect() {
+  const sel = document.getElementById('invClient');
+  sel.innerHTML = state.clients.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') + '<option value="__new__">+ Nouveau client</option>';
+}
+
+function checkNewClient() {
+  if (document.getElementById('invClient').value === '__new__') {
+    closeModal('invoiceModal');
+    openClientModal();
+  }
+}
+
+async function saveInvoice() {
+  const number = document.getElementById('invNumber').value.trim();
+  const clientId = document.getElementById('invClient').value;
+  const date = document.getElementById('invDate').value;
+  const dueDate = document.getElementById('invDueDate').value;
+  const amount = parseFloat(document.getElementById('invAmount').value);
+
+  if (!number) { toast('Le numéro de facture est obligatoire'); return; }
+  if (!clientId || clientId === '__new__') { toast('Veuillez sélectionner un client'); return; }
+  if (!date) { toast('La date d\'émission est obligatoire'); return; }
+  if (!dueDate) { toast('La date d\'échéance est obligatoire'); return; }
+  if (isNaN(amount) || amount <= 0) { toast('Le montant TTC doit être supérieur à 0'); return; }
+
+  // Check for duplicate number (only when creating)
+  if (!currentInvoiceId) {
+    if (state.invoices.some(i => i.number.toLowerCase() === number.toLowerCase())) {
+      if (!confirm(`Une facture avec le numéro "${number}" existe déjà. Continuer quand même ?`)) return;
+    }
+  }
+
+  const data = {
+    number,
+    date, dueDate, clientId,
+    amount,
+    amountHT: parseFloat(document.getElementById('invAmountHT').value) || null,
+    subject: document.getElementById('invSubject').value.trim(),
+    notes: document.getElementById('invNotes').value.trim(),
+  };
+
+  if (currentInvoiceId) {
+    Object.assign(getInvoice(currentInvoiceId), data);
+  } else {
+    state.invoices.push({
+      id: uid(), ...data,
+      payments: [], relances: [],
+      history: [{ type: 'created', date: new Date().toISOString(), text: 'Suivi activé' }]
+    });
+  }
+  await saveState();
+  closeModal('invoiceModal');
+  refreshAll();
+  toast(currentInvoiceId ? 'Facture mise à jour' : 'Facture ajoutée au suivi');
+}
+
+async function deleteInvoice() {
+  if (!confirm('Retirer cette facture du suivi ? (Cela ne supprime pas la facture dans votre logiciel d\'origine.)')) return;
+  state.invoices = state.invoices.filter(i => i.id !== currentInvoiceId);
+  await saveState();
+  closeModal('invoiceModal');
+  refreshAll();
+  toast('Facture retirée du suivi');
+}
+
+// ---------- PAYMENT MODAL ----------
+function openPaymentModal(invId) {
+  currentPaymentInvId = invId;
+  const inv = getInvoice(invId);
+  const cli = getClient(inv.clientId) || { name: '' };
+  const remaining = invoiceRemaining(inv);
+
+  document.getElementById('paymentContext').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px">
+      <div>
+        <div style="font-weight:600">${escapeHtml(inv.number)} — ${escapeHtml(cli.name)}</div>
+        <div style="color:var(--text-muted); font-size: 12px; margin-top: 2px">Total : ${fmt(invoiceTotal(inv))}${invoicePaid(inv) > 0 ? ` · Déjà payé : ${fmt(invoicePaid(inv))}` : ''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="color:var(--text-muted); font-size: 11px">Restant dû</div>
+        <div class="amount" style="font-size: 16px; color: var(--warning)">${fmt(remaining)}</div>
+      </div>
+    </div>
+  `;
+
+  // Quick pay buttons
+  const half = remaining / 2;
+  document.getElementById('quickPayGrid').innerHTML = `
+    <button class="quick-pay-btn" onclick="setPayAmount(${remaining})">
+      <div class="qp-label">Paiement intégral</div>
+      <div class="qp-value">${fmt(remaining)}</div>
+    </button>
+    <button class="quick-pay-btn" onclick="setPayAmount(${half.toFixed(2)})">
+      <div class="qp-label">Paiement partiel (50%)</div>
+      <div class="qp-value">${fmt(half)}</div>
+    </button>
+  `;
+
+  document.getElementById('payAmount').value = remaining.toFixed(2);
+  document.getElementById('payDate').value = today();
+  document.getElementById('payMethod').value = 'Virement';
+  document.getElementById('payRef').value = '';
+  document.getElementById('payNote').value = '';
+  document.getElementById('paymentModal').classList.add('show');
+}
+
+function setPayAmount(amount) {
+  document.getElementById('payAmount').value = amount;
+}
+
+async function savePayment() {
+  const amount = parseFloat(document.getElementById('payAmount').value);
+  const date = document.getElementById('payDate').value;
+  if (isNaN(amount) || amount <= 0) { toast('Montant invalide'); return; }
+  if (!date) { toast('Date requise'); return; }
+
+  const inv = getInvoice(currentPaymentInvId);
+  inv.payments = inv.payments || [];
+  inv.payments.push({
+    id: uid(),
+    date,
+    amount,
+    method: document.getElementById('payMethod').value,
+    ref: document.getElementById('payRef').value.trim(),
+    note: document.getElementById('payNote').value.trim(),
+  });
+  inv.history = inv.history || [];
+  inv.history.push({ type: 'payment', date: new Date().toISOString(), text: `Paiement reçu : ${fmt(amount)}` });
+
+  await saveState();
+  closeModal('paymentModal');
+  refreshAll();
+  toast(`Paiement de ${fmt(amount)} enregistré`);
+}
+
+async function deletePayment(invId, payId) {
+  if (!confirm('Supprimer ce paiement ?')) return;
+  const inv = getInvoice(invId);
+  inv.payments = (inv.payments || []).filter(p => p.id !== payId);
+  await saveState();
+  closeModal('detailModal');
+  openInvoiceDetail(invId);
+  refreshAll();
+  toast('Paiement supprimé');
+}
+
+// ---------- DETAIL MODAL ----------
+function openInvoiceDetail(id) {
+  currentInvoiceId = id;
+  const inv = getInvoice(id);
+  if (!inv) return;
+  const cli = getClient(inv.clientId) || { name: 'Client supprimé' };
+  const status = computeStatus(inv);
+  const late = inv.dueDate ? daysDiff(today(), inv.dueDate) : 0;
+  const isLate = status === 'overdue';
+  const remaining = invoiceRemaining(inv);
+
+  document.getElementById('detailTitle').innerHTML = `Facture ${escapeHtml(inv.number)} <span class="badge-status ${status}" style="margin-left:8px; vertical-align:middle">${statusLabel(status)}</span>`;
+  document.getElementById('detailMeta').innerHTML = `
+    <div class="meta-item"><div class="meta-label">Client</div><div class="meta-value">${escapeHtml(cli.name)}</div></div>
+    <div class="meta-item"><div class="meta-label">Émise le</div><div class="meta-value">${fmtDateLong(inv.date)}</div></div>
+    <div class="meta-item"><div class="meta-label">Échéance</div><div class="meta-value">${fmtDateLong(inv.dueDate)}${isLate ? ` <span class="days-late late">(+${late}j)</span>` : ''}</div></div>
+    <div class="meta-item"><div class="meta-label">${remaining > 0 ? 'Restant dû' : 'Total payé'}</div><div class="meta-value" style="color:${remaining > 0 ? 'var(--warning)' : 'var(--success)'}">${fmt(remaining > 0 ? remaining : invoiceTotal(inv))}</div></div>
+  `;
+
+  // Relance section
+  const dr = document.getElementById('detailRelance');
+  if (status === 'overdue' || status === 'partial') {
+    const lvl = nextRelanceLevel(inv);
+    const sent = (inv.relances || []).length;
+    dr.innerHTML = `<div class="relance-section">
+      <h4>Relance ${sent === 0 ? 'recommandée' : 'suivante'}</h4>
+      <p>${sent === 0 ? `Retard de <strong>${late} jours</strong>. Niveau ${lvl} suggéré.` : `${sent} relance${sent>1?'s':''} déjà envoyée${sent>1?'s':''}. Prochaine : niveau ${lvl}.`}</p>
+    </div>`;
+    document.getElementById('btnSendRelance').style.display = '';
+  } else {
+    dr.innerHTML = '';
+    document.getElementById('btnSendRelance').style.display = 'none';
+  }
+
+  // Payments list
+  const pb = document.getElementById('detailPayments');
+  const totalPaid = invoicePaid(inv);
+  if (inv.payments && inv.payments.length > 0) {
+    pb.innerHTML = `<h4>Paiements reçus (${fmt(totalPaid)} / ${fmt(invoiceTotal(inv))})</h4>
+      ${inv.payments.sort((a,b) => new Date(b.date) - new Date(a.date)).map(p => `
+        <div class="payment-row">
+          <div class="pay-info">
+            <span class="amount" style="color:var(--success)">+ ${fmt(p.amount)}</span>
+            <span class="pay-method">${escapeHtml(p.method)}</span>
+            <span style="color:var(--text-muted); font-size:12px">${fmtDate(p.date)}</span>
+            ${p.ref ? `<span style="color:var(--text-muted); font-size:11px; font-family: 'Geist Mono', monospace">${escapeHtml(p.ref)}</span>` : ''}
+            ${p.note ? `<span style="color:var(--text-soft); font-size:12px; font-style: italic">${escapeHtml(p.note)}</span>` : ''}
+          </div>
+          <button class="icon-btn" onclick="deletePayment('${inv.id}', '${p.id}')" title="Supprimer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>
+        </div>
+      `).join('')}`;
+  } else {
+    pb.innerHTML = `<h4>Paiements</h4><div style="color:var(--text-muted); font-size: 13px; padding: 8px 0">Aucun paiement enregistré pour le moment.</div>`;
+  }
+
+  // Timeline
+  const events = [];
+  events.push({ type: 'created', date: inv.date, text: `Suivi activé pour la facture <strong>${escapeHtml(inv.number)}</strong>${inv.subject ? ` — ${escapeHtml(inv.subject)}` : ''}` });
+  (inv.relances || []).forEach(r => events.push({ type: 'relance', date: r.date, text: `Relance niveau ${r.level} envoyée par ${ {email:'email',phone:'téléphone',post:'courrier',other:'autre'}[r.method] || r.method}` }));
+  (inv.payments || []).forEach(p => events.push({ type: 'payment', date: p.date, text: `Paiement reçu : <strong>${fmt(p.amount)}</strong> (${escapeHtml(p.method)})` }));
+  events.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  document.getElementById('detailTimeline').innerHTML = `
+    <div class="timeline-title">Historique</div>
+    ${events.map(e => `<div class="timeline-item">
+      <div class="timeline-dot ${e.type}">
+        ${e.type === 'created' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>' :
+          e.type === 'relance' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>' :
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>'}
+      </div>
+      <div class="timeline-content">
+        <div class="timeline-text">${e.text}</div>
+        <div class="timeline-date">${fmtDateLong(e.date)}</div>
+      </div>
+    </div>`).join('')}
+  `;
+
+  document.getElementById('btnEditInv').onclick = () => { closeModal('detailModal'); openInvoiceModal(id); };
+  document.getElementById('btnRecordPayment').onclick = () => { closeModal('detailModal'); openPaymentModal(id); };
+  document.getElementById('btnRecordPayment').style.display = remaining > 0 ? '' : 'none';
+  document.getElementById('btnSendRelance').onclick = () => { closeModal('detailModal'); openRelanceModal(id); };
+
+  document.getElementById('detailModal').classList.add('show');
+}
+
+// ---------- CLIENTS ----------
+function renderClients() {
+  const grid = document.getElementById('clientsGrid');
+  if (state.clients.length === 0) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <h3>Aucun client</h3>
+      <p>Ajoutez votre premier client pour commencer le suivi</p>
+      <button class="btn btn-accent" onclick="openClientModal()">+ Nouveau client</button>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = state.clients.map(c => {
+    const invs = state.invoices.filter(i => i.clientId === c.id);
+    const total = invs.reduce((s, i) => s + invoiceTotal(i), 0);
+    const overdue = invs.filter(i => computeStatus(i) === 'overdue').length;
+    const remaining = invs.reduce((s, i) => s + invoiceRemaining(i), 0);
+    return `<div class="client-card" onclick="openClientModal('${c.id}')">
+      <div class="client-card-head">
+        <div class="avatar">${initials(c.name)}</div>
+        <div>
+          <div class="client-card-name">${escapeHtml(c.name)}</div>
+          ${c.email ? `<div class="client-sub">${escapeHtml(c.email)}</div>` : ''}
+        </div>
+      </div>
+      <div class="client-card-stats">
+        <div><div class="client-stat-label">Factures</div><div class="client-stat-value">${invs.length}</div></div>
+        <div><div class="client-stat-label">CA</div><div class="client-stat-value">${fmt(total)}</div></div>
+      </div>
+      ${overdue > 0 ? `<div style="margin-top:10px"><span class="badge-status overdue">${overdue} en retard · ${fmt(remaining)}</span></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openClientModal(id) {
+  currentClientId = id || null;
+  if (id) {
+    const c = getClient(id);
+    document.getElementById('clientModalTitle').textContent = `Modifier ${c.name}`;
+    document.getElementById('cliName').value = c.name || '';
+    document.getElementById('cliContact').value = c.contact || '';
+    document.getElementById('cliEmail').value = c.email || '';
+    document.getElementById('cliPhone').value = c.phone || '';
+    document.getElementById('cliNotes').value = c.notes || '';
+    document.getElementById('deleteCliBtn').style.display = '';
+  } else {
+    document.getElementById('clientModalTitle').textContent = 'Nouveau client';
+    ['cliName','cliContact','cliEmail','cliPhone','cliNotes'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('deleteCliBtn').style.display = 'none';
+  }
+  document.getElementById('clientModal').classList.add('show');
+  setTimeout(() => document.getElementById('cliName').focus(), 100);
+}
+
+async function saveClient() {
+  const name = document.getElementById('cliName').value.trim();
+  if (!name) { toast('Le nom est obligatoire'); return; }
+  const data = {
+    name,
+    contact: document.getElementById('cliContact').value.trim(),
+    email: document.getElementById('cliEmail').value.trim(),
+    phone: document.getElementById('cliPhone').value.trim(),
+    notes: document.getElementById('cliNotes').value.trim(),
+  };
+  if (currentClientId) Object.assign(getClient(currentClientId), data);
+  else state.clients.push({ id: uid(), ...data, createdAt: new Date().toISOString() });
+  await saveState();
+  closeModal('clientModal');
+  refreshAll();
+  toast('Client enregistré');
+}
+
+async function deleteClient() {
+  const linked = state.invoices.filter(i => i.clientId === currentClientId).length;
+  if (linked > 0) {
+    if (!confirm(`Ce client a ${linked} facture${linked>1?'s':''} suivie${linked>1?'s':''}. Supprimer quand même ?`)) return;
+  } else {
+    if (!confirm('Supprimer ce client ?')) return;
+  }
+  state.clients = state.clients.filter(c => c.id !== currentClientId);
+  await saveState();
+  closeModal('clientModal');
+  refreshAll();
+  toast('Client supprimé');
+}
+
+// ---------- RELANCES ----------
+function renderRelances() {
+  const tpls = [...state.relanceTemplates].sort((a,b) => a.triggerDays - b.triggerDays);
+  tpls.forEach((t, idx) => {
+    const i = idx + 1;
+    const labelEl = document.getElementById(`seuil${i}Label`);
+    const descEl = document.getElementById(`seuil${i}Desc`);
+    if (labelEl) labelEl.textContent = `J+${t.triggerDays}`;
+    if (descEl) descEl.textContent = `factures en retard de ${t.triggerDays} jours et plus`;
+  });
+
+  const overdueInvoices = state.invoices.filter(i => {
+    const s = computeStatus(i);
+    return (s === 'overdue' || s === 'partial');
+  });
+
+  const groups = [[], [], []];
+  overdueInvoices.forEach(inv => {
+    const late = daysDiff(today(), inv.dueDate);
+    for (let idx = tpls.length - 1; idx >= 0; idx--) {
+      if (late >= tpls[idx].triggerDays) {
+        groups[idx].push(inv);
+        break;
+      }
+    }
+  });
+
+  const kpiData = [
+    { label: `J+${tpls[0]?.triggerDays || 15} — Premier rappel`, count: groups[0].length, total: groups[0].reduce((s,i) => s+invoiceRemaining(i), 0), cls: 'warning' },
+    { label: `J+${tpls[1]?.triggerDays || 22} — Deuxième relance`, count: groups[1].length, total: groups[1].reduce((s,i) => s+invoiceRemaining(i), 0), cls: 'danger' },
+    { label: `J+${tpls[2]?.triggerDays || 30} — Mise en demeure`, count: groups[2].length, total: groups[2].reduce((s,i) => s+invoiceRemaining(i), 0), cls: 'danger' },
+  ];
+
+  const totalAll = kpiData.reduce((s, k) => s + k.total, 0);
+  document.getElementById('relanceKpis').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-head"><div class="kpi-icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg></div>Total à recouvrer</div>
+      <div class="kpi-value"><span class="currency">€</span>${fmt(totalAll).replace(' €','')}</div>
+      <div class="kpi-meta">${overdueInvoices.length} facture${overdueInvoices.length>1?'s':''} en retard</div>
+    </div>
+    ${kpiData.map(k => `<div class="kpi">
+      <div class="kpi-head"><div class="kpi-icon ${k.cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>${k.label}</div>
+      <div class="kpi-value">${k.count}</div>
+      <div class="kpi-meta">${fmt(k.total)} à recouvrer</div>
+    </div>`).join('')}
+  `;
+
+  for (let i = 0; i < 3; i++) {
+    const tb = document.getElementById(`relances-${i+1}`);
+    const list = groups[i].sort((a,b) => daysDiff(today(), b.dueDate) - daysDiff(today(), a.dueDate));
+    if (list.length === 0) {
+      tb.innerHTML = `<tr><td colspan="7"><div class="empty" style="padding:30px 20px">
+        <div class="empty-icon" style="background:var(--success-soft); color:var(--success)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <h3>Aucune facture à ce niveau</h3>
+        <p style="margin-bottom:0">Tout est à jour !</p>
+      </div></td></tr>`;
+      continue;
+    }
+    tb.innerHTML = list.map(inv => {
+      const cli = getClient(inv.clientId) || { name: 'Client supprimé' };
+      const late = daysDiff(today(), inv.dueDate);
+      const sentCount = (inv.relances || []).length;
+      const sentLevels = (inv.relances || []).map(r => r.level);
+      const targetLevel = i + 1;
+      const alreadySent = sentLevels.includes(targetLevel);
+      const seuilCls = tpls[i].triggerDays >= 30 ? 'j30' : (tpls[i].triggerDays >= 22 ? 'j22' : 'j15');
+      return `<tr class="row-link ${i >= 1 ? 'urgent' : 'warn'}" data-id="${inv.id}">
+        <td><span class="num">${escapeHtml(inv.number)}</span></td>
+        <td><div class="client-cell"><div class="avatar">${initials(cli.name)}</div><div><div class="client-name">${escapeHtml(cli.name)}</div>${cli.email ? `<div class="client-sub">${escapeHtml(cli.email)}</div>` : ''}</div></div></td>
+        <td>${fmtDate(inv.dueDate)}</td>
+        <td><span class="days-late late">+${late} jours</span></td>
+        <td>${alreadySent ? `<span class="relance-pill done">Niveau ${targetLevel} envoyé</span>` : `<span class="relance-pill ${seuilCls}">À envoyer</span>`}${sentCount > 0 && !alreadySent ? ` <span class="relance-pill done">${sentCount} précédente${sentCount>1?'s':''}</span>` : ''}</td>
+        <td class="right amount">${fmt(invoiceRemaining(inv))}</td>
+        <td><button class="btn btn-sm btn-accent" onclick="event.stopPropagation(); openRelanceModal('${inv.id}', ${targetLevel})">${alreadySent ? 'Renvoyer' : 'Relancer'}</button></td>
+      </tr>`;
+    }).join('');
+    attachRowClicks(`relances-${i+1}`);
+  }
+}
+
+function openRelanceModal(invId, forceLevel) {
+  currentRelanceInvId = invId;
+  const inv = getInvoice(invId);
+  const cli = getClient(inv.clientId) || { name: '' };
+
+  const sel = document.getElementById('relLevel');
+  sel.innerHTML = state.relanceTemplates.sort((a,b) => a.level - b.level).map(t =>
+    `<option value="${t.level}">Niveau ${t.level} — J+${t.triggerDays}</option>`
+  ).join('');
+
+  const lvl = forceLevel || nextRelanceLevel(inv);
+  sel.value = lvl;
+  document.getElementById('relMethod').value = 'email';
+  fillRelanceTemplate(lvl, inv, cli);
+  document.getElementById('relanceModal').classList.add('show');
+}
+
+function updateRelanceTemplate() {
+  const lvl = parseInt(document.getElementById('relLevel').value);
+  const inv = getInvoice(currentRelanceInvId);
+  const cli = getClient(inv.clientId) || { name: '' };
+  fillRelanceTemplate(lvl, inv, cli);
+}
+
+function fillRelanceTemplate(lvl, inv, cli) {
+  const tpl = state.relanceTemplates.find(t => t.level === lvl) || state.relanceTemplates[0];
+  const vars = {
+    '{{client}}': cli.name || '',
+    '{{numero}}': inv.number,
+    '{{montant}}': fmt(invoiceRemaining(inv)),
+    '{{echeance}}': fmtDateLong(inv.dueDate),
+    '{{retard}}': daysDiff(today(), inv.dueDate),
+  };
+  let subject = tpl.subject, body = tpl.body;
+  Object.entries(vars).forEach(([k, v]) => {
+    subject = subject.replaceAll(k, v);
+    body = body.replaceAll(k, v);
+  });
+  // Add company signature
+  if (state.settings.companyName) {
+    body += `\n\n${state.settings.companyName}`;
+    if (state.settings.email) body += `\n${state.settings.email}`;
+    if (state.settings.phone) body += `\n${state.settings.phone}`;
+  }
+  document.getElementById('relSubject').value = subject;
+  document.getElementById('relMessage').value = body;
+}
+
+async function confirmRelance() {
+  const inv = getInvoice(currentRelanceInvId);
+  inv.relances = inv.relances || [];
+  inv.relances.push({
+    id: uid(),
+    date: new Date().toISOString(),
+    level: parseInt(document.getElementById('relLevel').value),
+    method: document.getElementById('relMethod').value,
+    subject: document.getElementById('relSubject').value,
+    message: document.getElementById('relMessage').value,
+  });
+  await saveState();
+  closeModal('relanceModal');
+  refreshAll();
+  toast('Relance enregistrée');
+}
+
+function copyRelance() {
+  const text = document.getElementById('relSubject').value + '\n\n' + document.getElementById('relMessage').value;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => toast('Copié dans le presse-papiers'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Copié'); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+async function markLevelReminded(level) {
+  const tpls = [...state.relanceTemplates].sort((a,b) => a.triggerDays - b.triggerDays);
+  const tpl = tpls[level - 1];
+  if (!tpl) return;
+  const minDays = tpl.triggerDays;
+  const maxDays = tpls[level] ? tpls[level].triggerDays - 1 : Infinity;
+  const candidates = state.invoices.filter(i => {
+    const s = computeStatus(i);
+    if (s !== 'overdue' && s !== 'partial') return false;
+    const late = daysDiff(today(), i.dueDate);
+    if (late < minDays || late > maxDays) return false;
+    const sentLevels = (i.relances || []).map(r => r.level);
+    return !sentLevels.includes(tpl.level);
+  });
+  if (candidates.length === 0) { toast('Aucune relance à marquer'); return; }
+  if (!confirm(`Marquer ${candidates.length} relance${candidates.length>1?'s':''} de niveau ${level} comme envoyée${candidates.length>1?'s':''} ?`)) return;
+  candidates.forEach(inv => {
+    inv.relances = inv.relances || [];
+    inv.relances.push({ id: uid(), date: new Date().toISOString(), level: tpl.level, method: 'email' });
+  });
+  await saveState();
+  refreshAll();
+  toast(`${candidates.length} relance${candidates.length>1?'s':''} marquée${candidates.length>1?'s':''}`);
+}
+
+// ---------- SETTINGS ----------
+function renderSettings() {
+  document.getElementById('setCompanyName').value = state.settings.companyName || '';
+  document.getElementById('setEmail').value = state.settings.email || '';
+  document.getElementById('setPhone').value = state.settings.phone || '';
+  document.getElementById('setPaymentDelay').value = state.settings.paymentDelay || 30;
+
+  // Charger la liste des utilisateurs
+  loadUsers();
+
+  // Connection info
+  const cfg = loadConfig();
+  const descEl = document.getElementById('connectionDesc');
+  const btnCopy = document.getElementById('btnCopyLink');
+  if (descEl && cfg && cfg.mode === 'cloud') {
+    descEl.innerHTML = `✅ <strong>Mode partagé activé</strong> — Données synchronisées en temps réel via Supabase.<br><span style="font-size: 11px; color: var(--text-muted)">Base : ${cfg.url}</span>`;
+    if (btnCopy) btnCopy.style.display = '';
+  } else if (descEl) {
+    descEl.textContent = 'Mode local — données stockées sur cet appareil uniquement. Cliquez sur "Changer la connexion" pour activer le partage.';
+    if (btnCopy) btnCopy.style.display = 'none';
+  }
+
+  const cont = document.getElementById('relanceTemplatesContainer');
+  const sorted = [...state.relanceTemplates].sort((a,b) => a.level - b.level);
+  cont.innerHTML = sorted.map((t, idx) => {
+    const cls = t.triggerDays >= 30 ? 'j30' : (t.triggerDays >= 22 ? 'j22' : 'j15');
+    return `<div class="relance-template">
+      <div class="relance-template-head">
+        <span class="relance-pill ${cls}" style="font-size:12px; padding:4px 12px">Niveau ${t.level}</span>
+        <span style="font-size:12px; color:var(--text-muted)">Déclenché à J+<strong style="color:var(--text)">${t.triggerDays}</strong> jours après échéance</span>
+      </div>
+      <div class="form-row" style="margin-bottom:8px">
+        <div class="form-group">
+          <label>Délai (jours après échéance)</label>
+          <input type="number" min="1" data-tpl="${idx}" data-field="triggerDays" value="${t.triggerDays}">
+        </div>
+        <div class="form-group">
+          <label>Objet de l'email</label>
+          <input type="text" data-tpl="${idx}" data-field="subject" value="${escapeAttr(t.subject)}">
+        </div>
+      </div>
+      <textarea data-tpl="${idx}" data-field="body">${escapeHtml(t.body)}</textarea>
+    </div>`;
+  }).join('');
+}
+
+function reopenSetup() {
+  // Plus utilisé avec authentification, mais on garde pour compat
+  toast('Configuration intégrée — voir gestion des utilisateurs');
+}
+
+// ---------- USER MANAGEMENT ----------
+async function createUser() {
+  const email = document.getElementById('newUserEmail').value.trim();
+  const password = document.getElementById('newUserPassword').value.trim();
+  if (!email || !password) { toast('Email et mot de passe requis'); return; }
+  if (password.length < 6) { toast('Mot de passe : 6 caractères minimum'); return; }
+
+  if (!confirm(`Créer le compte ${email} ?`)) return;
+
+  try {
+    const { data, error } = await sb.auth.signUp({
+      email, password,
+      options: { emailRedirectTo: window.location.href }
+    });
+    if (error) {
+      toast('Erreur : ' + error.message);
+      return;
+    }
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserPassword').value = '';
+    toast(`✅ Compte ${email} créé`);
+
+    // Sauvegarde locale de la liste (les méta utilisateurs ne sont pas accessibles via API anon)
+    state._users = state._users || [];
+    if (!state._users.find(u => u.email === email)) {
+      state._users.push({ email, createdAt: new Date().toISOString(), createdBy: currentUser.email });
+      await saveState();
+    }
+    loadUsers();
+  } catch (e) {
+    toast('Erreur : ' + e.message);
+  }
+}
+
+async function loadUsers() {
+  const cont = document.getElementById('usersList');
+  if (!cont) return;
+  const users = state._users || [];
+  if (users.length === 0) {
+    cont.innerHTML = `<div style="padding: 14px; background: var(--bg-subtle); border-radius: var(--radius-sm); text-align: center; color: var(--text-muted); font-size: 12px">Aucun utilisateur enregistré dans cette liste.<br>Note : les comptes existants avant cette mise à jour ne sont pas listés.</div>`;
+    return;
+  }
+  cont.innerHTML = users.map(u => `
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-subtle); border-radius: var(--radius-sm); margin-bottom: 6px;">
+      <div class="avatar" style="width: 28px; height: 28px; font-size: 11px;">${initials(u.email)}</div>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">${escapeHtml(u.email)}</div>
+        <div style="font-size: 11px; color: var(--text-muted)">Créé le ${fmtDate(u.createdAt)}${u.email === currentUser?.email ? ' · vous' : ''}</div>
+      </div>
+      ${u.email !== currentUser?.email ? `<button class="icon-btn" onclick="removeUserFromList('${escapeAttr(u.email)}')" title="Retirer de la liste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button>` : ''}
+    </div>
+  `).join('') + `
+    <div style="margin-top: 10px; padding: 10px; background: #fff7ed; border-left: 3px solid var(--warning); border-radius: var(--radius-sm); font-size: 11px; color: var(--text-soft); line-height: 1.5">
+      ⚠️ Pour <strong>supprimer définitivement</strong> un compte (et empêcher la connexion), allez dans Supabase → Authentication → Users → cliquez sur les "..." à droite de l'email → Delete user.
+    </div>
+  `;
+}
+
+async function removeUserFromList(email) {
+  if (!confirm(`Retirer ${email} de la liste ?\n\n⚠️ Cela ne supprime pas son compte de connexion. Pour cela, allez dans Supabase → Authentication.`)) return;
+  state._users = (state._users || []).filter(u => u.email !== email);
+  await saveState();
+  loadUsers();
+  toast('Retiré de la liste');
+}
+
+
+
+function copyShareLink() {
+  const url = window.location.href;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => toast('Lien copié — partagez-le à votre équipe'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Lien copié'); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+async function saveSettings() {
+  state.settings.companyName = document.getElementById('setCompanyName').value;
+  state.settings.email = document.getElementById('setEmail').value;
+  state.settings.phone = document.getElementById('setPhone').value;
+  state.settings.paymentDelay = parseInt(document.getElementById('setPaymentDelay').value) || 30;
+  await saveState();
+  toast('Paramètres enregistrés');
+}
+
+async function saveRelanceTemplates() {
+  const sorted = [...state.relanceTemplates].sort((a,b) => a.level - b.level);
+  document.querySelectorAll('#relanceTemplatesContainer [data-tpl]').forEach(el => {
+    const idx = parseInt(el.dataset.tpl);
+    const field = el.dataset.field;
+    const val = el.tagName === 'TEXTAREA' ? el.value : (field === 'triggerDays' ? parseInt(el.value) : el.value);
+    sorted[idx][field] = val;
+  });
+  state.relanceTemplates = sorted;
+  await saveState();
+  toast('Modèles de relance enregistrés');
+  renderSettings();
+}
+
+// ---------- IMPORT/EXPORT ----------
+function exportAll() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `billio-suivi-${today()}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('Données exportées');
+}
+
+function exportData() {
+  const headers = ['Numero','Date','Echeance','Client','Statut','Montant_TTC','Paye','Restant','Nb_Relances','Sujet'];
+  const rows = state.invoices.map(i => {
+    const cli = getClient(i.clientId) || {};
+    return [
+      i.number, i.date, i.dueDate, cli.name || '',
+      statusLabel(computeStatus(i)),
+      invoiceTotal(i).toFixed(2),
+      invoicePaid(i).toFixed(2),
+      invoiceRemaining(i).toFixed(2),
+      (i.relances || []).length,
+      i.subject || ''
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+  const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `suivi-factures-${today()}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('Export CSV téléchargé');
+}
+
+function importAll(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.clients || !data.invoices) throw new Error();
+      if (!confirm('Cette action remplacera toutes vos données actuelles. Continuer ?')) return;
+      state = data;
+      await saveState();
+      refreshAll();
+      toast('Données importées');
+    } catch (err) { toast('Fichier invalide'); }
+  };
+  reader.readAsText(file);
+}
+
+async function resetAll() {
+  if (!confirm('⚠️ Cela supprimera DÉFINITIVEMENT toutes vos données. Continuer ?')) return;
+  if (!confirm('Êtes-vous absolument sûr ?')) return;
+  state = { clients: [], invoices: [], settings: state.settings, relanceTemplates: state.relanceTemplates };
+  await saveState();
+  refreshAll();
+  toast('Données réinitialisées');
+}
+
+// ---------- UTILS ----------
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+  // Login: Entrée pour valider
+  if (e.key === 'Enter' && document.getElementById('loginScreen').classList.contains('show')) {
+    e.preventDefault();
+    doLogin();
+  }
+});
+function escapeAttr(s) { return String(s).replace(/"/g, '&quot;'); }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function refreshAll() {
+  updateSyncStatus();
+  renderDashboard();
+  if (document.getElementById('page-invoices').classList.contains('active')) renderInvoices();
+  if (document.getElementById('page-clients').classList.contains('active')) renderClients();
+  if (document.getElementById('page-relances').classList.contains('active')) renderRelances();
+}
+
+function updateSyncStatus() {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  if (mode === 'cloud') {
+    el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; animation: pulse 2s infinite"></span><span style="color: var(--success); font-weight: 500">Synchronisé</span><span style="color: var(--text-muted); margin-left: auto; font-size: 10px">Cloud</span>`;
+  } else {
+    el.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0"></span><span style="color: var(--text-muted)">Mode local</span>`;
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('page-dashboard').classList.contains('active')) {
+    drawMonthlyChart();
+    drawDonutChart(getInvoicesByMonth(selectedMonth));
+  }
+});
+
+// ---------- DASHBOARD PERIOD ----------
+document.querySelectorAll('#page-dashboard .seg-control button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#page-dashboard .seg-control button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const p = b.dataset.period;
+    if (p === 'month') selectedMonth = monthKey(new Date());
+    else if (p === 'ytd') selectedMonth = 'ytd_dash';
+    else selectedMonth = null;
+    renderDashboard();
+  });
+});
+
+// ---------- SEED ----------
+function seedDemoData() {
+  if (state.clients.length > 0 || state.invoices.length > 0) return;
+  const c1 = { id: uid(), name: 'Atelier Marceau', email: 'contact@atelier-marceau.fr', phone: '01 42 33 44 55', notes: '', createdAt: new Date().toISOString() };
+  const c2 = { id: uid(), name: 'Boutique Lumière SARL', email: 'j.dupont@boutique-lumiere.com', phone: '03 22 11 33 44', notes: '', createdAt: new Date().toISOString() };
+  const c3 = { id: uid(), name: 'Studio Verde', email: 'maria@studioverde.es', phone: '+34 91 234 5678', notes: 'Paiement souvent tardif', createdAt: new Date().toISOString() };
+  const c4 = { id: uid(), name: 'TechFlow SAS', email: 'a.lemaire@techflow.io', phone: '04 78 56 23 11', notes: '', createdAt: new Date().toISOString() };
+  state.clients = [c1, c2, c3, c4];
+
+  const mkDate = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().split('T')[0]; };
+
+  state.invoices = [
+    { id: uid(), number: 'F-2026-0001', date: mkDate(-90), dueDate: mkDate(-60), clientId: c1.id, amount: 2880, subject: 'Conception identité visuelle',
+      payments: [{ id: uid(), date: mkDate(-55), amount: 2880, method: 'Virement', ref: 'VIR-201', note: '' }], relances: [], notes: '' },
+    { id: uid(), number: 'F-2026-0002', date: mkDate(-85), dueDate: mkDate(-55), clientId: c2.id, amount: 2160, subject: 'Audit ergonomique',
+      payments: [{ id: uid(), date: mkDate(-50), amount: 2160, method: 'Virement', ref: '', note: '' }], relances: [], notes: '' },
+    { id: uid(), number: 'F-2026-0003', date: mkDate(-65), dueDate: mkDate(-35), clientId: c3.id, amount: 4200, subject: 'Développement site web',
+      payments: [], relances: [{ id: uid(), date: new Date(mkDate(-20)).toISOString(), level: 1, method: 'email' }], notes: '' },
+    { id: uid(), number: 'F-2026-0004', date: mkDate(-60), dueDate: mkDate(-30), clientId: c4.id, amount: 1800, subject: 'Prestation conseil',
+      payments: [], relances: [], notes: '' },
+    { id: uid(), number: 'F-2026-0005', date: mkDate(-40), dueDate: mkDate(-10), clientId: c1.id, amount: 540, subject: 'Maintenance trimestrielle',
+      payments: [], relances: [], notes: '' },
+    { id: uid(), number: 'F-2026-0006', date: mkDate(-35), dueDate: mkDate(-5), clientId: c2.id, amount: 1440, subject: 'Refonte logo',
+      payments: [{ id: uid(), date: mkDate(-2), amount: 1440, method: 'Virement', ref: '', note: 'Solde' }], relances: [], notes: '' },
+    { id: uid(), number: 'F-2026-0007', date: mkDate(-15), dueDate: mkDate(15), clientId: c4.id, amount: 1920, subject: 'Formation interne',
+      payments: [{ id: uid(), date: mkDate(-10), amount: 960, method: 'Virement', ref: '', note: 'Acompte 50%' }], relances: [], notes: '' },
+  ];
+
+  state.invoices.forEach(inv => {
+    inv.history = [{ type: 'created', date: new Date(inv.date).toISOString(), text: 'Suivi activé' }];
+  });
+}
+
+// ---------- INIT ----------
+(async function init() {
+  // Initialise Supabase avec les identifiants pré-configurés
+  if (!initSupabase(SUPABASE_URL, SUPABASE_KEY)) {
+    document.body.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif"><h2>Erreur de chargement</h2><p>Le SDK Supabase n\'a pas pu être initialisé. Rechargez la page.</p></div>';
+    return;
+  }
+
+  // Vérifie si un utilisateur est déjà connecté (session persistante)
+  const { data: { session } } = await sb.auth.getSession();
+  if (session && session.user) {
+    currentUser = session.user;
+    await startApp();
+  } else {
+    // Affiche l'écran de connexion
+    showLoginScreen();
+  }
+
+  // Écoute les changements d'authentification
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      currentUser = session.user;
+    }
+    if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      window.location.reload();
+    }
+  });
+})();
+
+async function startApp() {
+  document.getElementById('loginScreen').classList.remove('show');
+  document.querySelector('.app').style.display = 'grid';
+  await loadState();
+  if (state.invoices.length === 0 && state.clients.length === 0) {
+    seedDemoData();
+    await saveState();
+  }
+  // Auto-ajout de l'utilisateur courant dans la liste s'il n'y est pas
+  state._users = state._users || [];
+  if (currentUser && !state._users.find(u => u.email === currentUser.email)) {
+    state._users.push({ email: currentUser.email, createdAt: new Date().toISOString(), createdBy: 'auto' });
+    await saveState();
+  }
+  selectedMonth = monthKey(new Date());
+  refreshAll();
+  setupRealtimeSync();
+  updateUserDisplay();
+}
+
+function showLoginScreen() {
+  document.querySelector('.app').style.display = 'none';
+  document.getElementById('loginScreen').classList.add('show');
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const remember = document.getElementById('loginRemember').checked;
+
+  if (!email || !password) { toast('Email et mot de passe requis'); return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.textContent = 'Connexion...';
+
+  try {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast('Erreur : ' + error.message);
+      btn.disabled = false;
+      btn.textContent = 'Se connecter';
+      return;
+    }
+    currentUser = data.user;
+    await startApp();
+    toast('✅ Bienvenue ' + email.split('@')[0]);
+  } catch (e) {
+    toast('Erreur : ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Se connecter';
+  }
+}
+
+async function doLogout() {
+  if (!confirm('Se déconnecter ?')) return;
+  await sb.auth.signOut();
+}
+
+function updateUserDisplay() {
+  const el = document.getElementById('userDisplay');
+  if (el && currentUser) {
+    el.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12px;">
+        <div class="avatar" style="width:24px; height:24px; font-size:10px; background:var(--primary-soft); color:var(--primary)">${initials(currentUser.email)}</div>
+        <div style="flex:1; overflow:hidden">
+          <div style="color:var(--text); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${currentUser.email}</div>
+        </div>
+        <button class="icon-btn" onclick="doLogout()" title="Déconnexion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+      </div>
+    `;
+  }
+}
+</script>
+</body>
+</html>
